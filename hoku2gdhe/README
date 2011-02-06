@@ -1,0 +1,44 @@
+hoku2dghe
+-------------------------------------------
+
+Prerequisites:
+
+- MTI driver from openrobots
+- hokuyo driver from openrobots
+- gdhe from openrobots
+- qtcreator
+-------------------------------------------
+
+NOTES:
+
+See MainWindow.cpp for more notes
+-------------------------------------------
+
+INSTALL/COMPILE
+-------------------------------------------
+
+Application is QT based so you can either
+
+- open .pro file with qtcreator
+or
+- compile from command line as follows:
+
+note: qmake only needs to be run the first time to generate the makefile
+
+paul@paul-Inspiron-1210:~/Documents/LAAS/laserhawk/hoku2gdhe$ qmake
+paul@paul-Inspiron-1210:~/Documents/LAAS/laserhawk/hoku2gdhe$ make
+/usr/bin/uic-qt4 mainwindow.ui -o ui_mainwindow.h
+g++ -c -pipe -O2 -Wall -W -D_REENTRANT -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_CORE_LIB -DQT_SHARED -I/usr/share/qt4/mkspecs/linux-g++ -I. -I/usr/include/qt4/QtCore -I/usr/include/qt4/QtGui -I/usr/include/qt4 -I. -I../../../../openrobots/include -I../../../../openrobots/include/MTI-clients -I../../../../openrobots/include/gearbox -I. -I. -o imu.o imu.cpp
+g++ -c -pipe -O2 -Wall -W -D_REENTRANT -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_CORE_LIB -DQT_SHARED -I/usr/share/qt4/mkspecs/linux-g++ -I. -I/usr/include/qt4/QtCore -I/usr/include/qt4/QtGui -I/usr/include/qt4 -I. -I../../../../openrobots/include -I../../../../openrobots/include/MTI-clients -I../../../../openrobots/include/gearbox -I. -I. -o main.o main.cpp
+g++ -c -pipe -O2 -Wall -W -D_REENTRANT -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_CORE_LIB -DQT_SHARED -I/usr/share/qt4/mkspecs/linux-g++ -I. -I/usr/include/qt4/QtCore -I/usr/include/qt4/QtGui -I/usr/include/qt4 -I. -I../../../../openrobots/include -I../../../../openrobots/include/MTI-clients -I../../../../openrobots/include/gearbox -I. -I. -o mainwindow.o mainwindow.cpp
+mainwindow.cpp: In member function ‘void MainWindow::openGDHE()’:
+mainwindow.cpp:766: warning: ignoring return value of ‘int system(const char*)’, declared with attribute warn_unused_result
+mainwindow.cpp: In member function ‘void MainWindow::scanGDHE()’:
+mainwindow.cpp:508: warning: ‘pdepth’ may be used uninitialized in this function
+g++ -c -pipe -O2 -Wall -W -D_REENTRANT -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_CORE_LIB -DQT_SHARED -I/usr/share/qt4/mkspecs/linux-g++ -I. -I/usr/include/qt4/QtCore -I/usr/include/qt4/QtGui -I/usr/include/qt4 -I. -I../../../../openrobots/include -I../../../../openrobots/include/MTI-clients -I../../../../openrobots/include/gearbox -I. -I. -o pnm_io2.o pnm_io2.cpp
+/usr/bin/moc-qt4 -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_CORE_LIB -DQT_SHARED -I/usr/share/qt4/mkspecs/linux-g++ -I. -I/usr/include/qt4/QtCore -I/usr/include/qt4/QtGui -I/usr/include/qt4 -I. -I../../../../openrobots/include -I../../../../openrobots/include/MTI-clients -I../../../../openrobots/include/gearbox -I. -I. imu.h -o moc_imu.cpp
+g++ -c -pipe -O2 -Wall -W -D_REENTRANT -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_CORE_LIB -DQT_SHARED -I/usr/share/qt4/mkspecs/linux-g++ -I. -I/usr/include/qt4/QtCore -I/usr/include/qt4/QtGui -I/usr/include/qt4 -I. -I../../../../openrobots/include -I../../../../openrobots/include/MTI-clients -I../../../../openrobots/include/gearbox -I. -I. -o moc_imu.o moc_imu.cpp
+/usr/bin/moc-qt4 -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_CORE_LIB -DQT_SHARED -I/usr/share/qt4/mkspecs/linux-g++ -I. -I/usr/include/qt4/QtCore -I/usr/include/qt4/QtGui -I/usr/include/qt4 -I. -I../../../../openrobots/include -I../../../../openrobots/include/MTI-clients -I../../../../openrobots/include/gearbox -I. -I. mainwindow.h -o moc_mainwindow.cpp
+g++ -c -pipe -O2 -Wall -W -D_REENTRANT -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_CORE_LIB -DQT_SHARED -I/usr/share/qt4/mkspecs/linux-g++ -I. -I/usr/include/qt4/QtCore -I/usr/include/qt4/QtGui -I/usr/include/qt4 -I. -I../../../../openrobots/include -I../../../../openrobots/include/MTI-clients -I../../../../openrobots/include/gearbox -I. -I. -o moc_mainwindow.o moc_mainwindow.cpp
+g++ -Wl,-O1 -o hoku2gdhe imu.o main.o mainwindow.o pnm_io2.o moc_imu.o moc_mainwindow.o    -L/usr/lib /home/paul/openrobots/lib/libMTI.a /home/paul/openrobots/lib/libMTI.so /home/paul/openrobots/lib/libGDHE.so -L/home/paul/openrobots/lib/gearbox -lhokuyo_aist -lQtGui -lQtCore -lpthread 
+
