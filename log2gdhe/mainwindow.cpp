@@ -17,15 +17,34 @@ TODO:
 - implement virtual surface that is virtually sensed during fly over
 */
 
+/*
+Hokuyo times:
+~/Documents/LAAS/laserhawk/hokuyomti/2011-02-17-19-16-49
+scan000000 1297966609.500544
+scan001710 1297966710.938730
+
+MTI times:
+./Documents/LAAS/laserhawk/hokuyomti/MTI.out
+points around hokuyo start:
+1297966609.494408131 QUAT  0.524142  0.143444  0.818253  0.187515 POS 377094.231 4824479.079    208.328  31T VEL   -1.7512    0.2324    0.8404
+1297966609.504407883 QUAT  0.524124  0.143390  0.818256  0.187592 POS 377094.228 4824479.062    208.337  31T VEL   -1.7577    0.2331    0.8399
+
+Start and end
+1297965927.462918758
+1297966725.302998781
+*/
+
 #include <QtGui>
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include <stdio.h>
 
 #define FLOATHOKUYO double
 //#define LOG_NAME	"/home/paul/Documents/LAAS/qtcreator_projs/hokuyomti/log/2011-06-14-22-54-34"
 #define LOG_NAME	"/home/paul/Documents/LAAS/laserhawk/hokuyomti/2011-02-17-19-16-49"
 #define NB_SCAN_START   100
-#define NB_SCAN_INCR 20
+#define NB_SCAN_INCR 10
+#define MTI_LOG_NAME	"/home/paul/Documents/LAAS/laserhawk/hokuyomti/MTI.out"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow)
@@ -50,8 +69,8 @@ MainWindow::MainWindow(QWidget *parent)
     savedata.data = (uint32_t*)malloc(1080*sizeof(uint32_t));
     savedata.x_data = (float*)malloc(1080*sizeof(float));
     savedata.y_data = (float*)malloc(1080*sizeof(float));
-
-    this->resize(240,320);
+    
+	this->resize(240,320);
 
     openGDHE();
     
@@ -240,6 +259,15 @@ void pline_from_pos(int mode, float x_pos, float y_pos, float z_pos){
 }
 
 
+FILE *Fscanmti = NULL;
+double R11,R12,R13;
+double R21,R22,R23;
+double R31,R32,R33;
+double lat,lon,alt;
+double latini=0;
+double lonini=0;
+double altini=0;
+
 void MainWindow::getRange(){
     char nomfich[1000];
     FILE *Fscan = NULL;
@@ -247,6 +275,11 @@ void MainWindow::getRange(){
     FLOATHOKUYO x,y;
     //uint32_t depth;
 	int var[2] = {0};
+	double mti[11] = {0};
+	int mtic = 0;
+	char mtiz;
+	double quat[4];
+	double mtitime,hokuyotime;
 	
 	
 	//char * fileName = strdup(LOG_NAME);
@@ -257,7 +290,7 @@ void MainWindow::getRange(){
 
     if(Fscan != NULL)
     {
-        for(int i=0 ; i <= 1080 ; i++) {
+        for(int i=0 ; i < 1080 ; i++) {
             int res = fscanf(Fscan,"%d       %d\n", &var[0], &var[1]);
 			if (res != 2) {printf("fscanf failed\n");}
 
@@ -279,7 +312,52 @@ void MainWindow::getRange(){
             savedata.y_data[i] = y;
             //printf("i=%d data=%d \n", i, var[1]);
         }
+		fscanf(Fscan,"%lf\n", &hokuyotime);
+		printf("hokuyotime: %lf \n",hokuyotime);
 		fclose(Fscan);
+				
+		//1297965927.462918758 QUAT  0.072093  0.746111  0.661814 -0.011095 POS 377098.986 4824479.869    200.101  31T VEL   -0.0100    0.0200    0.0100
+		char* mtiline;
+		size_t mtilinelength = 1000;
+	
+		mtiline = (char *) malloc (mtilinelength + 1);
+		do { 
+			getline(&mtiline,&mtilinelength,Fscanmti);
+			//printf("MTI scan :  %s\n",mtiline);
+			int res = sscanf(mtiline,"%lf QUAT  %lf  %lf  %lf %lf POS %lf %lf    %lf  %2d%c VEL   %lf    %lf    %lf\n", 
+					&mti[0],&mti[1],&mti[2],&mti[3],&mti[4],&mti[5],&mti[6],&mti[7],&mtic,&mtiz,&mti[8],&mti[9],&mti[10]);
+			//printf("fscanf RETURNED %d\n",res);
+			mtitime = mti[0];
+			//printf("mti line time %lf\n",mtitime);
+		} while (mtitime < hokuyotime);
+		printf("mti line time %lf\n",mtitime);
+		
+		float sumsqr = 0;
+		for (int i=0;i<4;i++){
+			quat[i] = mti[i+1];
+			printf("Quat[%d]: %lf\n",i,quat[i]);
+			sumsqr += quat[i]*quat[i]; 
+		}
+		printf("quat norm : %lf\n",sqrt(sumsqr));
+		
+		//convert quat to rot matrix
+		//quat2rot();
+		//0 w
+		//1 x
+		//2 y
+		//3 z
+		R11 = 1-2*quat[2]*quat[2]-2*quat[3]*quat[3]; R12 = 2*quat[1]*quat[2] - 2*quat[3]*quat[0]; R13 = 2*quat[1]*quat[3] + 2*quat[2]*quat[0];
+		R21 = 2*quat[1]*quat[2] + 2*quat[3]*quat[0]; R22 = 1-2*quat[1]*quat[1]-2*quat[3]*quat[3]; R23 = 2*quat[2]*quat[3] - 2*quat[1]*quat[0];
+		R31 = 2*quat[1]*quat[3] - 2*quat[2]*quat[0]; R32 = 2*quat[2]*quat[3] + 2*quat[1]*quat[0]; R33 = 1-2*quat[1]*quat[1]-2*quat[2]*quat[2];
+		
+		savedata.rx=0;savedata.ry=0;savedata.rz=0;
+		
+		lat = mti[5];
+		lon = mti[6];
+		alt = mti[7];
+		if (latini == 0) {latini=lat;lonini=lon;altini=alt;} else {lat-=latini;lon-=lonini;alt-=altini;}
+		printf("lat: %lf lon: %lf alt: %lf\n",lat,lon,alt);
+
     }
 	//nb_testscan++;
 }
@@ -293,7 +371,7 @@ void MainWindow::scanGDHE()
 {
     int scanpt;
     static int md;
-    double Rx, Ry, Rz;
+//    double Rx, Ry, Rz;
     double theta,thetarad;
     float x,y,z, new_x, new_y, new_z;
     double depth = 0.;
@@ -317,21 +395,21 @@ void MainWindow::scanGDHE()
                 // envoi d'un signal au thread IMU pour recuperer les donnees de l'imu
                 //pupt xsens angles in these variables :(Rx_point, Ry_point, Rz_point);
 				//getIMU(Rx_point, Ry_point, Rz_point);
-                printf("Xsens => Rx=%f , Ry=%f , Rz=%f \n", Rx_xsens , Ry_xsens, Rz_xsens);
+                //printf("Xsens => Rx=%f , Ry=%f , Rz=%f \n", Rx_xsens , Ry_xsens, Rz_xsens);
 
                 // calcul des angles en radian
-                Rx = Rx_xsens*M_PI/180; Ry = Ry_xsens*M_PI/180; Rz = Rz_xsens*M_PI/180;
+               // Rx = Rx_xsens*M_PI/180; Ry = Ry_xsens*M_PI/180; Rz = Rz_xsens*M_PI/180;
 
                 // Calcul de la matrice de rotation World to Sensor
-                double R[9]      = { cos(Ry)*cos(Rz), -cos(Rx)*sin(Rz)+cos(Rz)*sin(Rx)*sin(Ry),  sin(Rx)*sin(Rz)+cos(Rx)*cos(Rz)*sin(Ry),
+                /*double R[9]      = { cos(Ry)*cos(Rz), -cos(Rx)*sin(Rz)+cos(Rz)*sin(Rx)*sin(Ry),  sin(Rx)*sin(Rz)+cos(Rx)*cos(Rz)*sin(Ry),
 				     cos(Ry)*sin(Rz),  cos(Rx)*cos(Rz)+sin(Rx)*sin(Ry)*sin(Rz), -cos(Rz)*sin(Rx)+cos(Rx)*sin(Ry)*sin(Rz),
 				        -sin(Ry)    ,              cos(Ry)*sin(Rx)            ,              cos(Rx)*cos(Ry)            };
-
+*/
                 // Draw xsens reference frame in GDHE
-                eval_expression((char *)"set robots(IMU) { color 0 0 255; repere }");
+              /*  eval_expression((char *)"set robots(IMU) { color 0 0 255; repere }");
                 QString setIMU = "set pos(IMU) { ";
                 QTextStream(&setIMU) << Rz_xsens << " " << Ry_xsens << " " <<  Rx_xsens << " 0 0 0 }";
-                eval_expression(setIMU.toLatin1().data());
+                eval_expression(setIMU.toLatin1().data());*/
                 //printf("\n\n\n\nchaine gdhe pour imu : %s \n\n\n\n",text6);
 
                 // for each scan point
@@ -339,19 +417,19 @@ void MainWindow::scanGDHE()
                     /* get data from hokuyo*/
                     depth = savedata.data[scanpt]/1000.; // data en mm, depth in meters
 		    
-		    /*If too close disregard*/
-		    if (depth < 0.1) {
-		        tooclose++;
-				continue;
-		    }
+					/*If too close disregard*/
+					if (depth < 0.1) {
+						tooclose++;
+						continue;
+					}
 
-		    //Restart polyline if jump in depth occurs
-		    if ((depth > (pdepth*MAXDIF)) || (depth < (pdepth*MINDIF))) {
-			md = mod_rest;
-		    } else {
-			md = mod_cont;
-		    }
-		    pdepth = depth;
+					//Restart polyline if jump in depth occurs
+					if ((depth > (pdepth*MAXDIF)) || (depth < (pdepth*MINDIF))) {
+						md = mod_rest;
+					} else {
+						md = mod_cont;
+					}
+					pdepth = depth;
 		    
                     //depth=100*sin(6.28*i/270);
 
@@ -367,13 +445,30 @@ void MainWindow::scanGDHE()
                     z = 0;
 
                     // calcul des coordonnees x, y et z dans le repere world
-                    new_x = R[0]*x + R[1]*y + R[2]*z;
+/*                    new_x = R[0]*x + R[1]*y + R[2]*z;
                     new_y = R[3]*x + R[4]*y + R[5]*z;
-                    new_z = R[6]*x + R[7]*y + R[8]*z;
+                    new_z = R[6]*x + R[7]*y + R[8]*z;*/
+					int R[9] = {0,1,0,
+								0,0,1,
+								1,0,0};
+					//cheating
+					z = x;			
+					x = y;
+					y = z;
+								
+					new_x = R11*x + R12*y + R13*z;
+                    new_y = R21*x + R22*y + R23*z;
+                    new_z = R31*x + R32*y + R33*z;
                     //printf("new_x=%f , new_y=%f , new_z=%f \n",new_x,new_y,new_z);
 
-					//pline_from_pos(md, new_x, new_y, new_z);
-					pline_from_pos(md, new_x, new_y, num_scans);
+					//translate
+					new_x += lat;
+                    new_y += lon;
+                    new_z += 0;
+
+
+					pline_from_pos(md, new_x, new_y, new_z);
+					//pline_from_pos(md, new_x, new_y, num_scans);
 
                     savedata.angle[scanpt] = thetarad;
 //                    savedata.data[scanpt] = data[scanpt];
@@ -404,19 +499,41 @@ void MainWindow::scanGDHE()
 
 void MainWindow::openGDHE()
 {
+    char nomfich[1000];
+	char* junk;
+	size_t junklength = 1000;
+	
+	//char * fileName = strdup(LOG_NAME);
+    //sprintf(nomfich, "%s/scan%06d.txt", fileName.c_str(), nb_scan);
+	sprintf(nomfich, "%s", MTI_LOG_NAME);
+	printf("mti file:%s\n", nomfich);
+	Fscanmti = fopen(nomfich, "rt");
+	
+	junk = (char *) malloc (junklength + 1);
+	for (int i=0;i<4;i++) { 
+		getline(&junk,&junklength,Fscanmti);
+		printf("Junk %s",junk);
+	}
+	/*int res = fscanf(Fscanmti,"%s\n", junk);
+	printf("Junk %s",junk);
+	res = fscanf(Fscanmti,"%s\n", junk);
+	printf("Junk %s",junk);
+	res = fscanf(Fscanmti,"%s\n", junk);
+	printf("Junk %s",junk);*/
+
     if( gdhe_open == false ) {
         button_open_gdhe->setText("close GDHE");
         gdhe_open=true;
 
         // Open GDHE
-        int res = system("gdhe &");
-		
-		if (res == 0) {printf("gdhe started ok\n");}
-
+        //int res = system("gdhe &");
+		//if (res == 0) {printf("gdhe started ok\n");}
         // Sleep to allow full opening of GDHE, then connect
-        sleep(3);
+        //sleep(3);
 
-        int error = get_connection((char *)"localhost");
+        //int error = get_connection((char *)"localhost");
+		//int error = get_connection((char *)"140.93.7.255");
+		int error = get_connection((char *)"140.93.4.43");		
         printf("get_con ret: %d\n",error);
 
         // Coordinate Frame at origin

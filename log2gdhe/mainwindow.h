@@ -42,6 +42,9 @@ public:
         float * x_data;
         float * y_data;
         float * angle;
+		float rx;
+		float ry;
+		float rz;
     } data_sensor;
 
 private:
