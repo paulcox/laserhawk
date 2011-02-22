@@ -1,0 +1,8 @@
+*/Makefile
+*/moc_*.cpp
+*/ui_*.h
+ipks/*.ipk
+*/*.o
+log2gdhe/log2gdhe
+hoku2gdhe/hoku2gdhe
+hokuyomti/hokuyomti

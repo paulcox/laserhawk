@@ -46,6 +46,11 @@ Start and end
 #define NB_SCAN_INCR 10
 #define MTI_LOG_NAME	"/home/paul/Documents/LAAS/laserhawk/hokuyomti/MTI.out"
 
+QString truc = "proc truc {} { \nobject truc { \npushMatrix \ncolor 200 200 100 \nbox 0 0 -0.5 1 1 1 \ncolor 200 0 0 \n\
+cylinder 0 0 0 x 1 0 2 24 \ncolor 0 200 0 \ncylinder 0 0 0 y 1 0 2 24 \ncolor 0 0 200 \ncylinder 0 0 0 z 1 0 2 24 \n\
+popMatrix \n} \n} ";
+
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow)
 {
@@ -267,6 +272,7 @@ double lat,lon,alt;
 double latini=0;
 double lonini=0;
 double altini=0;
+double quat[4];
 
 void MainWindow::getRange(){
     char nomfich[1000];
@@ -278,12 +284,8 @@ void MainWindow::getRange(){
 	double mti[11] = {0};
 	int mtic = 0;
 	char mtiz;
-	double quat[4];
 	double mtitime,hokuyotime;
 	
-	
-	//char * fileName = strdup(LOG_NAME);
-    //sprintf(nomfich, "%s/scan%06d.txt", fileName.c_str(), nb_scan);
 	sprintf(nomfich, "%s/scan%06d.txt", LOG_NAME, nb_scan);
 	printf("fichier:%s\n", nomfich);
     Fscan = fopen(nomfich, "rt");
@@ -293,10 +295,7 @@ void MainWindow::getRange(){
         for(int i=0 ; i < 1080 ; i++) {
             int res = fscanf(Fscan,"%d       %d\n", &var[0], &var[1]);
 			if (res != 2) {printf("fscanf failed\n");}
-
             //printf("var0=%d , var1=%d \n",var[0],var[1]);
-
-            // calcul : angle , distance, profondeur
 
             // calcul de l'angle
             theta = -(135) + i*(270.0/1080);
@@ -312,6 +311,7 @@ void MainWindow::getRange(){
             savedata.y_data[i] = y;
             //printf("i=%d data=%d \n", i, var[1]);
         }
+		//read last line of scan file which gives us time of acquisition
 		fscanf(Fscan,"%lf\n", &hokuyotime);
 		printf("hokuyotime: %lf \n",hokuyotime);
 		fclose(Fscan);
@@ -321,6 +321,7 @@ void MainWindow::getRange(){
 		size_t mtilinelength = 1000;
 	
 		mtiline = (char *) malloc (mtilinelength + 1);
+		//scan through mti log and find corresponding entry by looking for next closest timestamp (not necessarily closest)
 		do { 
 			getline(&mtiline,&mtilinelength,Fscanmti);
 			//printf("MTI scan :  %s\n",mtiline);
@@ -338,14 +339,11 @@ void MainWindow::getRange(){
 			printf("Quat[%d]: %lf\n",i,quat[i]);
 			sumsqr += quat[i]*quat[i]; 
 		}
-		printf("quat norm : %lf\n",sqrt(sumsqr));
+		//printf("quat norm : %lf\n",sqrt(sumsqr)); //check norm, should be unity
 		
 		//convert quat to rot matrix
-		//quat2rot();
-		//0 w
-		//1 x
-		//2 y
-		//3 z
+		//http://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToMatrix/index.htm
+		//0=w		1=x		2=y		3=z
 		R11 = 1-2*quat[2]*quat[2]-2*quat[3]*quat[3]; R12 = 2*quat[1]*quat[2] - 2*quat[3]*quat[0]; R13 = 2*quat[1]*quat[3] + 2*quat[2]*quat[0];
 		R21 = 2*quat[1]*quat[2] + 2*quat[3]*quat[0]; R22 = 1-2*quat[1]*quat[1]-2*quat[3]*quat[3]; R23 = 2*quat[2]*quat[3] - 2*quat[1]*quat[0];
 		R31 = 2*quat[1]*quat[3] - 2*quat[2]*quat[0]; R32 = 2*quat[2]*quat[3] + 2*quat[1]*quat[0]; R33 = 1-2*quat[1]*quat[1]-2*quat[2]*quat[2];
@@ -355,7 +353,7 @@ void MainWindow::getRange(){
 		lat = mti[5];
 		lon = mti[6];
 		alt = mti[7];
-		if (latini == 0) {latini=lat;lonini=lon;altini=alt;} else {lat-=latini;lon-=lonini;alt-=altini;}
+		if (latini == 0) {latini=lat;lonini=lon;altini=alt;lat=0;lon=0;alt=0;} else {lat-=latini;lon-=lonini;alt-=altini;}
 		printf("lat: %lf lon: %lf alt: %lf\n",lat,lon,alt);
 
     }
@@ -366,6 +364,7 @@ void MainWindow::getRange(){
 #define FAC 0.5f
 #define MAXDIF (1+FAC)
 #define MINDIF (1-FAC)
+
 
 void MainWindow::scanGDHE()
 {
@@ -378,116 +377,127 @@ void MainWindow::scanGDHE()
 	double pdepth = 0.;
     int tooclose = 0;
     //int sizeimagexy=500;
+	
+	QString tpline_str;
+	static QString tpline_str_pts;
+	rgb color; color.r = 0; color.g = 200; color.b = (4*num_scans);
 
     if( port_open == true )
     {
         if( gdhe_open == true )
         {
-                // Get range data
-                //put it in this variable : data;
-				getRange();
+			// Get range data
+			getRange();
 
-                //Tell IMU thread I'm about to get a new frame from the camera
-                //emit xsensValues(Rx_xsens , Ry_xsens, Rz_xsens);
-                Rx_xsens = 0; Ry_xsens = 0; Rz_xsens = 0;
-                Rx_point = &Rx_xsens; Ry_point = &Ry_xsens; Rz_point = &Rz_xsens;
+			/*Rx_xsens = 0; Ry_xsens = 0; Rz_xsens = 0;
+            Rx_point = &Rx_xsens; Ry_point = &Ry_xsens; Rz_point = &Rz_xsens;*/
 
-                // envoi d'un signal au thread IMU pour recuperer les donnees de l'imu
-                //pupt xsens angles in these variables :(Rx_point, Ry_point, Rz_point);
-				//getIMU(Rx_point, Ry_point, Rz_point);
-                //printf("Xsens => Rx=%f , Ry=%f , Rz=%f \n", Rx_xsens , Ry_xsens, Rz_xsens);
-
-                // calcul des angles en radian
-               // Rx = Rx_xsens*M_PI/180; Ry = Ry_xsens*M_PI/180; Rz = Rz_xsens*M_PI/180;
-
-                // Calcul de la matrice de rotation World to Sensor
-                /*double R[9]      = { cos(Ry)*cos(Rz), -cos(Rx)*sin(Rz)+cos(Rz)*sin(Rx)*sin(Ry),  sin(Rx)*sin(Rz)+cos(Rx)*cos(Rz)*sin(Ry),
-				     cos(Ry)*sin(Rz),  cos(Rx)*cos(Rz)+sin(Rx)*sin(Ry)*sin(Rz), -cos(Rz)*sin(Rx)+cos(Rx)*sin(Ry)*sin(Rz),
-				        -sin(Ry)    ,              cos(Ry)*sin(Rx)            ,              cos(Rx)*cos(Ry)            };
-*/
-                // Draw xsens reference frame in GDHE
-              /*  eval_expression((char *)"set robots(IMU) { color 0 0 255; repere }");
-                QString setIMU = "set pos(IMU) { ";
-                QTextStream(&setIMU) << Rz_xsens << " " << Ry_xsens << " " <<  Rx_xsens << " 0 0 0 }";
-                eval_expression(setIMU.toLatin1().data());*/
-                //printf("\n\n\n\nchaine gdhe pour imu : %s \n\n\n\n",text6);
-
-                // for each scan point
-                for (scanpt=0; scanpt<1080; scanpt++) {
-                    /* get data from hokuyo*/
-                    depth = savedata.data[scanpt]/1000.; // data en mm, depth in meters
-		    
-					/*If too close disregard*/
-					if (depth < 0.1) {
-						tooclose++;
-						continue;
-					}
-
-					//Restart polyline if jump in depth occurs
-					if ((depth > (pdepth*MAXDIF)) || (depth < (pdepth*MINDIF))) {
-						md = mod_rest;
-					} else {
-						md = mod_cont;
-					}
-					pdepth = depth;
-		    
-                    //depth=100*sin(6.28*i/270);
-
-                    // calculate angle in degrees
-                    theta = -(135) + scanpt * (270.0/1080);
-                    //theta=-theta+180;
-                    // calcul of angle in radians
-                    thetarad = theta * M_PI/180.0;
-
-                    // calculate coordonees x, y et z dans le repere sensor
-                    x = cos(thetarad) * depth;
-                    y = sin(thetarad) * depth;
-                    z = 0;
-
-                    // calcul des coordonnees x, y et z dans le repere world
-/*                    new_x = R[0]*x + R[1]*y + R[2]*z;
-                    new_y = R[3]*x + R[4]*y + R[5]*z;
-                    new_z = R[6]*x + R[7]*y + R[8]*z;*/
-					int R[9] = {0,1,0,
-								0,0,1,
-								1,0,0};
-					//cheating
-					z = x;			
-					x = y;
-					y = z;
-								
-					new_x = R11*x + R12*y + R13*z;
-                    new_y = R21*x + R22*y + R23*z;
-                    new_z = R31*x + R32*y + R33*z;
-                    //printf("new_x=%f , new_y=%f , new_z=%f \n",new_x,new_y,new_z);
-
-					//translate
-					new_x += lat;
-                    new_y += lon;
-                    new_z += 0;
+            // Rx = Rx_xsens*M_PI/180; Ry = Ry_xsens*M_PI/180; Rz = Rz_xsens*M_PI/180;
+            // Calcul de la matrice de rotation World to Sensor
+            /*double R[9]      = { cos(Ry)*cos(Rz), -cos(Rx)*sin(Rz)+cos(Rz)*sin(Rx)*sin(Ry),  sin(Rx)*sin(Rz)+cos(Rx)*cos(Rz)*sin(Ry),
+			     cos(Ry)*sin(Rz),  cos(Rx)*cos(Rz)+sin(Rx)*sin(Ry)*sin(Rz), -cos(Rz)*sin(Rx)+cos(Rx)*sin(Ry)*sin(Rz),
+			        -sin(Ry)    ,              cos(Ry)*sin(Rx)            ,              cos(Rx)*cos(Ry)            };*/
+			
+            // Draw xsens reference frame in GDHE
+            //eval_expression((char *)"set robots(IMU) { color 0 0 255; repere }");
+			eval_expression((char *)"set robots(IMU) { truc }");
+			//QString setIMU = "set pos(IMU) { 0 0 0 0 0 0 }";
+            QString setIMU = "set pos(IMU) { ";
+			//QTextStream(&setIMU) << "0 0 0 " << lat << " " << lon << " " << alt << " }";
+			//ATTENTION: order of the three angles in following line was done arbitrarily
+			QTextStream(&setIMU) << atan2(-R31,R11) << " " << asin(R21) << " " << atan2(-R23,R22) << " " << lat << " " << lon << " " << alt << " }";
+			eval_expression(setIMU.toLatin1().data());
+            printf("\nimu gdhe string: %s \n",setIMU.toLatin1().data());
+			
+			//delete old trajectory pline (unless this is the first scan)
+			if (num_scans != 0){
+				QString unsetScan = "unset robots(traj)";
+				eval_expression(unsetScan.toLatin1().data());
+			}
+			//draw trajectory pline
+			tpline_str = "set robots(traj";
+			QTextStream(&tpline_str) << \
+							") { color " << color.r << " " << color.g << " " << color.b << " ; polyline " << num_scans+1 << " " ;
+			QTextStream(&tpline_str_pts) << lat << " " << lon << " " << alt << " ";
+			tpline_str += tpline_str_pts;
+			QTextStream(&tpline_str) << "}";
+			eval_expression(tpline_str.toLatin1().data());
+			//printf("tpline: %s\n", tpline_str.toLatin1().data());
+			QString setScan = "set pos(traj) { 0 0 0 0 0 0 }";
+			eval_expression(setScan.toLatin1().data());
 
 
-					pline_from_pos(md, new_x, new_y, new_z);
-					//pline_from_pos(md, new_x, new_y, num_scans);
+            // for each scan point
+            for (scanpt=0; scanpt<1080; scanpt++) {
+                /* get data from hokuyo*/
+                depth = savedata.data[scanpt]/1000.; // data en mm, depth in meters
+	    
+				/*If too close disregard*/
+				if (depth < 0.1) {
+					tooclose++;
+					continue;
+				}
 
-                    savedata.angle[scanpt] = thetarad;
-//                    savedata.data[scanpt] = data[scanpt];
-                    savedata.x_data[scanpt] = new_x;
-                    savedata.y_data[scanpt] = new_y;
-                }
-		//let pline_from_pos know we are done with scan line
-		pline_from_pos(mod_end, 0, 0, 0);
-		printf("pts too close: %d\n",tooclose);
+				//Restart polyline if jump in depth occurs
+				if ((depth > (pdepth*MAXDIF)) || (depth < (pdepth*MINDIF))) {
+					md = mod_rest;
+				} else {
+					md = mod_cont;
+				}
+				pdepth = depth;
 
-                //search(savedata);
-                nb_scan += NB_SCAN_INCR;
-				num_scans++;
+                // calculate angle in degrees
+                theta = -(135) + scanpt * (270.0/1080);
+                //theta=-theta+180;
+				
+                // calcul of angle in radians
+                thetarad = theta * M_PI/180.0;
 
-            }
-        else {
-            label1->setText("GDHE program is closed\n");
-            printf("GDHE program is closed\n");
-        }
+                // calculate coordonees x, y et z dans le repere sensor
+                x = cos(thetarad) * depth;
+                y = sin(thetarad) * depth;
+                z = 0;
+				
+				/*int R[9] = {0,1,0,
+							0,0,1,
+							1,0,0};*/
+				//cheating
+				z = x;			
+				x = y;
+				y = z;
+							
+				new_x = R11*x + R12*y + R13*z;
+                new_y = R21*x + R22*y + R23*z;
+                new_z = R31*x + R32*y + R33*z;
+                //printf("new_x=%f , new_y=%f , new_z=%f \n",new_x,new_y,new_z);
+
+				//translate
+				new_x += lat;
+                new_y += lon;
+                new_z += alt;
+
+
+				pline_from_pos(md, new_x, new_y, new_z);
+				//pline_from_pos(md, new_x, new_y, num_scans);
+
+                savedata.angle[scanpt] = thetarad;
+				//savedata.data[scanpt] = data[scanpt];
+                savedata.x_data[scanpt] = new_x;
+                savedata.y_data[scanpt] = new_y;
+            } //end forall scanpts
+			
+			//let pline_from_pos know we are done with scan line
+			pline_from_pos(mod_end, 0, 0, 0);
+			printf("pts too close: %d\n",tooclose);
+					
+            //search(savedata);
+            nb_scan += NB_SCAN_INCR;
+			num_scans++;
+
+            } else {
+				label1->setText("GDHE program is closed\n");
+				printf("GDHE program is closed\n");
+			}
 
     } else {
         label1->setText("Hokuyo port is closed\n");
@@ -553,9 +563,15 @@ void MainWindow::openGDHE()
         // Grid
         eval_expression((char *)"set robots(grid) { color 75 75 0; grille -50 -50 50 50 1 }");
         eval_expression((char *)"set pos(grid) { 0 0 0 0 0 0 }");
+		
+		eval_expression(truc.toLatin1().data());
+		printf("%s\n",truc.toLatin1().data());
+		
+		//eval_expression((char *)"set robots(truc) { truc }");
+        //eval_expression((char *)"set pos(truc) { 0 0 0 }");
 	
-	eval_expression((char *)"set robots(r1) { xr4000 }");
-        eval_expression((char *)"set pos(r1) { 0 0 0 0 0 0 }");
+		//eval_expression((char *)"set robots(r1) { xr4000 }");
+        //eval_expression((char *)"set pos(r1) { 0 0 0 0 0 0 }");
 
         //GDHE_client_prot::disconnect();??
         /*
