@@ -1,0 +1,7 @@
+This application is currently used to generate logs using scans from the hokuyo sensor.
+
+Despite it's name, it does not use the mti.
+
+Start it using "hokyomti /dev/ttyACM0"
+
+In the log folder (you must make this) it will create a folder using the date/time and populate it with scan files. Each file includes the distance for 1080 scan points and the final line has the time of acquisition. See add log2gdhe for help parsing or viewing these logs.
