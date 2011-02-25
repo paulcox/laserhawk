@@ -79,7 +79,7 @@ print "-----   --------     ----------\n";
 
 #get distance between hokyo and terrain for each ray
 #for ($scnpt = HALFWAY-45/RESDEG ; $scnpt <= HALFWAY+45/RESDEG ; $scnpt+=1) {
-for ($scnpt = HALFWAY-65/RESDEG ; $scnpt <= HALFWAY+65/RESDEG ; $scnpt+=4) {
+for ($scnpt = HALFWAY-90/RESDEG ; $scnpt <= HALFWAY+45/RESDEG ; $scnpt+=2/RESDEG) {
 	$thetarad = ($scnpt - HALFWAY)*RESRAD;
 	$thetadeg = ($scnpt - HALFWAY)*RESDEG;
 	
@@ -87,8 +87,10 @@ for ($scnpt = HALFWAY-65/RESDEG ; $scnpt <= HALFWAY+65/RESDEG ; $scnpt+=4) {
 	printf " dist : %4.2f\n",$distance[$i];
 	#if (($scnpt % 25/RESDEG) == 0) 
 	{
-		$im->line(	IMGWIDTH/2, IMGBDR+NOMTH+$H*SCALE/cos($psirad),
-					IMGWIDTH/2+$distance[$i]*sin($thetarad)*SCALE, IMGBDR+NOMTH+$H*SCALE/cos($psirad)-$distance[$i]*cos($thetarad)*SCALE,$red);
+		$im->line(	IMGWIDTH/2,
+					IMGBDR+NOMTH+$H*SCALE/cos($psirad),
+					IMGWIDTH/2 + $distance[$i]*sin($thetarad)*SCALE,
+					IMGBDR+NOMTH+$H*SCALE/cos($psirad) - $distance[$i]*cos($thetarad)*SCALE,$red);
 	}
 	$i++;
 }
@@ -100,6 +102,7 @@ exit;
 ###############################################################################
 # SUBROUTINES
 
+#create an image with border, scale bars, and nominal ground height
 sub initimg {
 	#we're going to assume the origin (0,0) is at bottom left as we are flipping
 	#vertically before writing out the file.
@@ -126,6 +129,7 @@ sub initimg {
 	}
 }
 
+#write image to file
 sub writeimg {
 	#write image to file
 	$im->flipVertical();
@@ -155,6 +159,7 @@ sub terrain {
 	
 	if ($xval <= MAXTERRAIN && $xval >= -(MAXTERRAIN)){
 		switch ($xval) {
+			#sin doesn't look right, some sort of bug...
 			#case { ($xval <= -500) || ($xval >= 500) } {$theight = 100*sin($xval/pi);}
 			case { ($xval <= -500) || ($xval >= 500) } {$theight = abs($xval*.5)-500;}
 			case {  ($xval < -200) || ($xval > 200)  } {$theight = 30;}
@@ -169,6 +174,18 @@ sub terrain {
 	return $theight;
 }
 
+#dist approximation
+sub distapx {
+	my $x = $_[0];
+	my $z = $_[1];
+
+	my $Ht = (terrain($x,$z)+terrain($x-1,$z)+terrain($x,$z-1)+terrain($x-1,$z-1))/4;
+	my $xest = ($H-$Ht)*tan($thetarad);
+	my $zest = ($H-$Ht)*tan($psirad);
+	my $distapx = sqrt( ($H-$Ht)**2+($xest)**2+($zest)**2);
+	#print "   distapx: $distapx | Ht $Ht | x $xest | z $zest\n";
+	return $distapx;
+}
 
 #subroutine to calculate distance
 sub getdist {
@@ -178,11 +195,10 @@ sub getdist {
 	
 	printf "pt $scnpt: theta %1.4f (%1.2f) ",$thetarad,$thetadeg;
 		
-	
 	#if the angle is less than the resolution we take H directly
 	if ($thetarad < RESRAD && $thetarad > -(RESRAD)) { 
-		$dist = $H/sin($psirad);
-		#print "dist: $dist\n";
+		$dist = $H/cos($psirad);
+		print "dist: $dist\n";
 		return $dist;
 	} else {
 		#if the angle is positive
@@ -194,6 +210,7 @@ sub getdist {
 				#print "y: $y z: $z\n";
 				#if we are below the terrain, the ray has intersected and we're done
 				if ($y < terrain($x,$z)) {
+					#the following code calculates the exact distance but is more more slightly more computationally expensive maybe
 # 					my $ydist = $x/sin($thetarad);
 # 					#my $zdist = $z/sin($psirad);
 # 					$dist = sqrt($ydist**2 + $z**2);
@@ -203,13 +220,7 @@ sub getdist {
 # 					$dist -= $d2much;
 # 					print "   dist: $dist ($d2muchx) ($d2much)\n";
 
-					#test new approximation (not finished.)
-					my $Ht = (terrain($x,$z)+terrain($x-1,$z)+terrain($x,$z-1)+terrain($x-1,$z-1))/4;
-					my $xest = ($H-$Ht)*tan($thetarad);
-					my $zest = ($H-$Ht)*tan($psirad);
-					my $distapx = sqrt( ($H-$Ht)**2+($xest)**2+($zest)**2);
-					#print "   distapx: $distapx | Ht $Ht | x $xest | z $zest\n";
-					return $distapx;
+					return distapx($x,$z);
 #					return $dist;
 					#last;
 				}
@@ -234,13 +245,7 @@ sub getdist {
 #  					$dist -= $d2much;
 #  					print "   dist: $dist ($d2muchx) ($d2much)\n";
 					
-					#test new approximation
-					my $Ht = (terrain($x,$z)+terrain($x-1,$z)+terrain($x,$z-1)+terrain($x-1,$z-1))/4;
-					my $xest = ($H-$Ht)*tan($thetarad);
-					my $zest = ($H-$Ht)*tan($psirad);
-					my $distapx = sqrt( ($H-$Ht)**2+($xest)**2+($zest)**2);
-					#print "   distapx: $distapx | Ht $Ht | x $xest | z $zest\n";
-					return $distapx;
+					return distapx($x,$z);
 #					return $dist;
 					#last;
 				}
