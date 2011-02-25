@@ -1,9 +1,10 @@
+CONFIG += qt debug
 
 TEMPLATE = app
 TARGET = 
 DEPENDPATH += .
-INCLUDEPATH += . \
-            ${ROBOTPKG_BASE}/sources/hardware/MTI/work.paul-Inspiron-1210/MTI-0.4/MTI/
+INCLUDEPATH += . 
+            
 
 HEADERS += imu.h \
            mainwindow.h \

@@ -74,6 +74,9 @@ private:
     unsigned int baud, speed, clusterCount;
     bool getIntensities, getNew, verbose;
 
+
+    int animFlag; //!=0 if we want to draw a new laser scan at each timer tick
+
     // Hokuyo flag
     bool port_open;
     bool view_image;
@@ -89,6 +92,7 @@ private:
     QPushButton *button_open_gdhe;
     QPushButton *button_scan_gdhe;
     QPushButton *button_clear;
+    QPushButton *button_animate;
 
     // Label (image and text)
     QLabel *label1;
@@ -100,6 +104,8 @@ private:
 
     // Layout
     QGridLayout *layout_G;
+
+    QTimer * Timer;
 
 signals:
     //void xsensValues(double&, double&, double&);
@@ -114,7 +120,10 @@ private slots:
  //   void search(data_sensor sensor);
     void kill_gdhe_function();
     void populate_GUI();
-	void getRange();
+    void getRange();
+    void animate();
+    void on_timer_Event();
+
 };
 
 #endif // MAINWINDOW_H
