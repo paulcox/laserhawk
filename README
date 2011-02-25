@@ -1,0 +1,14 @@
+laserhawk projects:
+
+*** hoku2gdhe - This application scans a connected hokuyo sensor and displays
+the data in a gdhe window.
+
+*** hokuyomti - This application is currently used to read a hokuyo sensor and
+to store the scan data in a log. Despite the name there is no use of the MTI,
+so you should use another app to record MTI data (like MTIHardTest)
+
+*** log2gdhe - This application reads the MTI and hokuyo scan logs and 
+displays the data in a gdhe window. An included program mkvirtlog creates
+virtual logs to validate proper operation.
+
+*** ipks - openrobot libraries useful for gumstix overo development. These are built on a LAAS machine (borderouge) in openembedded.
