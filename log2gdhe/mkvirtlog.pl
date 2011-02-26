@@ -9,7 +9,7 @@
 #x is positive to the right
 #x is negative to the left
 #y is positive up
-#kokuyo scans from left to right
+#hokuyo scans from left to right
 #  Reference Diagram:
 #                         +Y
 #                          ^
@@ -45,10 +45,12 @@ use constant IMGHEIGHT => 600;
 use constant IMGWIDTH => 600;
 use constant IMGBDR => 50;
 #nominal terrain height
-use constant NOMTH => IMGHEIGHT/2;
+use constant NOMTH => (IMGHEIGHT-(2*IMGBDR))/2;
+#With terrain from -1000..1000 and image 500 px wide, SCALE=1/4
 use constant SCALE => (IMGHEIGHT-2*IMGBDR)/(2*MAXTERRAIN);
+#DEBUG sets the terrain to all flat
 use constant DEBUG => 0;
-use constant COLORMAP => 0;
+#set to 0 to use terrain bitmap for terrain height
 use constant HARDCODEDTERRAIN => 0;
 
 ###############################################################################
@@ -78,14 +80,20 @@ my @distance;
 my $thetarad;
 my $thetadeg;
 
-open(LOG,">scan.log");
+my $logenable = 0;
+$logenable = 1 if ($#ARGV == 1);
 
+if ($logenable){
+	my $lognum = $ARGV[1];
+	my $logname = sprintf "scan%06d.txt",$lognum;
+	open(LOG,">$logname");
+	print "Logging to $logname\n";
+}
 my $psideg = $ARGV[0];
 #my $psideg = 0.25;
 #my $psideg = 45;
 my $psirad = deg2rad($psideg);
 printf "psirad: %1.4f (%3.2f)\n",$psirad,$psideg;
-
 print "scnpt   thetarad     (thetadeg)\n";
 print "-----   --------     ----------\n";
 
@@ -96,30 +104,25 @@ for ($scnpt = HALFWAY-45/RESDEG ; $scnpt <= HALFWAY+45/RESDEG ; $scnpt+=2/RESDEG
 	$thetadeg = ($scnpt - HALFWAY)*RESDEG;
 	
 	$distance[$scnpt] = getdist();
-	
 
-	#if (($scnpt % 25/RESDEG) == 0) 
-	{
-		my $psidist = $H*SCALE/cos($psirad);
+	my $psidist = $H*SCALE/cos($psirad);
+	#draw scan line	
+	$im->line(	IMGWIDTH/2,
+				IMGBDR+NOMTH + $psidist,
+				IMGWIDTH/2   + $distance[$scnpt]*sin($thetarad)*SCALE,
+				IMGBDR+NOMTH + $psidist - $distance[$scnpt]*cos($thetarad)*SCALE,
+				$red);
+	#draw little hokuyo
+	$im->arc(IMGWIDTH/2,IMGBDR+NOMTH+$H*SCALE,10,10,135,45,$red);
 		
-		$im->line(	IMGWIDTH/2,
-					IMGBDR+NOMTH + $psidist,
-					IMGWIDTH/2   + $distance[$scnpt]*sin($thetarad)*SCALE,
-					IMGBDR+NOMTH + $psidist - $distance[$scnpt]*cos($thetarad)*SCALE,
-					$red);
-		#draw little hokuyo
-		$im->arc(IMGWIDTH/2,IMGBDR+NOMTH+$H*SCALE,10,10,135,45,$red);
-	}
 	$raycnt++;
 	if ($distance[$scnpt]==0) {$distance[$scnpt]=1;}
 	printf " dist : %4.2f\n",$distance[$scnpt];
-	printf LOG "%04d       %d\n",$raycnt,$distance[$scnpt]*10; #multiply to 10 to go from cm to mm
+	printf LOG "%04d       %d\n",$raycnt,$distance[$scnpt]*10 if ($logenable); #multiply to 10 to go from cm to mm
 }
 
 writeimg();
-
-close LOG;
-
+close LOG if ($logenable);
 exit;
 
 ###############################################################################
@@ -137,9 +140,10 @@ sub initimg {
     # Put a black frame around the picture
     $im->rectangle(0,0,IMGWIDTH-1,IMGHEIGHT,$black);
 
-	#draw scale bars
-	$im->line(IMGBDR/2,IMGBDR/2,IMGWIDTH-(IMGBDR/2),IMGBDR/2,$green);
-	$im->line(IMGBDR/2,IMGBDR/2,IMGBDR/2,IMGHEIGHT-(IMGBDR/2),$green);
+	#draw scale bars, first horiz
+	$im->line(IMGBDR/2+10,IMGBDR/2,IMGWIDTH-(IMGBDR),IMGBDR/2,$green);
+	#now vertical
+	$im->line(IMGBDR/2+10,IMGBDR/2,IMGBDR/2+10,IMGHEIGHT-(IMGBDR),$green);
 	
 }
 
@@ -151,14 +155,31 @@ sub writeimg {
 	
 	$im->flipVertical();
 	#add scale bar ticks and text
-		for (my $i=0 ; $i<IMGHEIGHT-(IMGBDR) ; $i+=10 ) {
-		#vertical scale
-		$im->line(IMGBDR/2,IMGBDR/2+$i,IMGBDR/2+5,IMGBDR/2+$i,$green);
-		#horiz scale
-		$im->line(IMGBDR/2+$i,IMGHEIGHT-(IMGBDR)/2,IMGBDR/2+$i,IMGHEIGHT-(IMGBDR)/2+5,$green);
+	for (my $i=0 ; $i<=IMGHEIGHT-2*IMGBDR ; $i+=10 ) {
+		my $txt;
+		
+		#vertical scale bar
+		if ($i%50 == 0) {
+			$txt = sprintf "%d",-($i/SCALE-1000);
+			$im->string(gdSmallFont,5,IMGBDR+$i-5,$txt,$white);
+			$im->line(IMGBDR/2+10,IMGBDR+$i,IMGBDR/2+18,IMGBDR+$i,$green);
+		} else {
+			$im->line(IMGBDR/2+10,IMGBDR+$i,IMGBDR/2+15,IMGBDR+$i,$green);
+		}
+		
+		#horiz scale bar
+		if ($i%50 == 0) {
+			$txt = sprintf "%d",$i/SCALE-1000;
+			$im->string(gdSmallFont,IMGBDR+$i-10,IMGHEIGHT-(IMGBDR)/2+5,$txt,$white);
+			$im->line(IMGBDR+$i,IMGHEIGHT-(IMGBDR)/2+3,IMGBDR+$i,IMGHEIGHT-(IMGBDR)/2-8,$green);
+		} else {
+			$im->line(IMGBDR+$i,IMGHEIGHT-(IMGBDR)/2,IMGBDR+$i,IMGHEIGHT-(IMGBDR)/2-5,$green);
+		}
 	}
 	#Print parameters
 	$im->string(gdSmallFont,400,IMGBDR/2,"H:$H cm  Psi:$psiname ",$white);
+	$im->string(gdSmallFont,20,IMGBDR/6,"Virtual terrain laser scanner and logger",$blue);
+	$im->string(gdSmallFont,20,IMGBDR/2,"Paul Cox 2011 LAAS/CNRS",$blue);
 
 	open(IMG, ">imgs/terrain$psiname.png") or die $1;
 	binmode IMG;
