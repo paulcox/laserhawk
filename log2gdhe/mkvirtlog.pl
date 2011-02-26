@@ -45,12 +45,13 @@ use constant IMGHEIGHT => 600;
 use constant IMGWIDTH => 600;
 use constant IMGBDR => 50;
 #nominal terrain height
-#use constant NOMTH => 50;
 use constant NOMTH => IMGHEIGHT/2;
 use constant SCALE => (IMGHEIGHT-2*IMGBDR)/(2*MAXTERRAIN);
 use constant DEBUG => 0;
-use constant COLORMAP =>0;
+use constant COLORMAP => 0;
+use constant HARDCODEDTERRAIN => 0;
 
+###############################################################################
 #height of hokyo sensor relative to terrain (in cm)
 my $H = 700;
 print "Hokuyo height ; $H cm\n";
@@ -59,7 +60,7 @@ print "Ouput image scale: ".1/SCALE." cm per pixel\n";
 # create a new image and define globals (colors)
 #  third param 1 is important as it defines 24bit color image
 my $im = new GD::Image(IMGWIDTH,IMGHEIGHT,1);
-my $im2 =new GD::Image(2*MAXTERRAIN*SCALE,2*MAXTERRAIN*SCALE,1); 
+my $im2 = new GD::Image(2*MAXTERRAIN*SCALE,2*MAXTERRAIN*SCALE,1); 
 # allocate some colors
 my $white = $im->colorAllocate(255,255,255);
 my $black = $im->colorAllocate(0,0,0);       
@@ -71,7 +72,7 @@ initimg();
 
 showterrain();
 
-my $i=0;
+my $raycnt = 0;
 my $scnpt;
 my @distance;
 my $thetarad;
@@ -106,11 +107,13 @@ for ($scnpt = HALFWAY-45/RESDEG ; $scnpt <= HALFWAY+45/RESDEG ; $scnpt+=2/RESDEG
 					IMGWIDTH/2   + $distance[$scnpt]*sin($thetarad)*SCALE,
 					IMGBDR+NOMTH + $psidist - $distance[$scnpt]*cos($thetarad)*SCALE,
 					$red);
+		#draw little hokuyo
+		$im->arc(IMGWIDTH/2,IMGBDR+NOMTH+$H*SCALE,10,10,135,45,$red);
 	}
-	$i++;
+	$raycnt++;
 	if ($distance[$scnpt]==0) {$distance[$scnpt]=1;}
 	printf " dist : %4.2f\n",$distance[$scnpt];
-	printf LOG "%04d       %d\n",$i,$distance[$scnpt]*10; #multiply to 10 to go from cm to mm
+	printf LOG "%04d       %d\n",$raycnt,$distance[$scnpt]*10; #multiply to 10 to go from cm to mm
 }
 
 writeimg();
@@ -141,7 +144,7 @@ sub initimg {
 }
 
 
-
+###############################################################################
 #write image to file
 sub writeimg {
 	my $psiname = sprintf "%06.2f",$psideg;
@@ -164,7 +167,7 @@ sub writeimg {
 	close(IMG);
 }
 
-
+###############################################################################
 #show terrain
 sub showterrain {
 
@@ -208,33 +211,39 @@ sub showterrain {
 		$im->setPixel(IMGWIDTH/2+$i*SCALE,IMGBDR+NOMTH+$t*SCALE,$blue);
 		#print " $i $t\n";
 	}
-
 }
 
+###############################################################################
 #pass the terrain subroutine a x value and it return you the terrain height
 sub terrain {
 	my $theight;
 	my ($xval,$zval) = @_;
 	
-#	return 0 if (DEBUG==0) ;
+	return 0 if (DEBUG);
 	
-	if ($xval <= MAXTERRAIN && $xval >= -(MAXTERRAIN)){
-		switch ($xval) {
-			#sin doesn't look right, some sort of bug...
-			case { ($xval <= -500) || ($xval >= 500) } {$theight = 100*sin($xval/(25*pi));}
-			#case { ($xval <= -500) || ($xval >= 500) } {$theight = abs($xval*.5)-500;}
-			case {  ($xval < -200) || ($xval > 200)  } {$theight = 30;}
-			case { ($xval >= -200) || ($xval <= 200) } {$theight = abs($xval*.5);}
-			#else { print "terrain error!";$theight = 0;}
-		}
+	if (HARDCODEDTERRAIN) {
+		if ($xval <= MAXTERRAIN && $xval >= -(MAXTERRAIN)){
+			switch ($xval) {
+				case { ($xval <= -500) || ($xval >= 500) } {$theight = 100*sin($xval/(25*pi));}
+				#case { ($xval <= -500) || ($xval >= 500) } {$theight = abs($xval*.5)-500;}
+				case {  ($xval < -200) || ($xval > 200)  } {$theight = 30;}
+				case { ($xval >= -200) || ($xval <= 200) } {$theight = abs($xval*.5);}
+				#else { print "terrain error!";$theight = 0;}
+			}
+		} else {
+			print "Warning: out of bounds: $xval\n";
+			$theight = 0;
+		}	
 	} else {
-		print "Warning: out of bounds: $xval\n";
-		$theight = 0;
-	}	
-
+		my $index = $im2->getPixel($xval*SCALE+250,$zval*SCALE+250);
+        my ($r,$g,$b) = $im2->rgb($index);
+		$theight = $r-128;
+	}
+	
 	return $theight;
 }
 
+###############################################################################
 #dist approximation
 sub distapx {
 	my $x = $_[0];
@@ -248,6 +257,7 @@ sub distapx {
 	return $distapx;
 }
 
+###############################################################################
 #the following code calculates the exact distance but is more more slightly more computationally expensive maybe
 sub distgeo {
 	my $x = $_[0];
@@ -255,30 +265,23 @@ sub distgeo {
 	my $z = $_[2];
 	my $yp = $_[3];
 	my $zp = $_[4];
+	my ($d2muchx,$d2much);
 
+	my $ydist = $x/sin($thetarad);
+	my $dist = sqrt($ydist**2 + $z**2);
 	if ($thetarad >= RESRAD) {
-		my $ydist = $x/sin($thetarad);
-		#my $zdist = $z/sin($psirad);
-		my $dist = sqrt($ydist**2 + $z**2);
-		my $d2muchx = ((terrain($x,$z)-$y)*(XINC)/($yp+terrain($x,$z)-$y-terrain($x-1,$z-1)))/sin($thetarad);
-		#$dist -= $d2muchx;
-		my $d2much = sqrt($d2muchx**2 + ((terrain($x,$z)-$y)*($z-$zp)/($yp+terrain($x,$z)-$y-terrain($x-1,$z-1)))**2);
-		$dist -= $d2much;
-		#print "   dist: $dist ($d2muchx) ($d2much)\n";
-		return $dist;
+		$d2muchx = ((terrain($x,$z)-$y)*(XINC)/($yp+terrain($x,$z)-$y-terrain($x-1,$z-1)))/sin($thetarad);
+		$d2much = sqrt($d2muchx**2 + ((terrain($x,$z)-$y)*($z-$zp)/($yp+terrain($x,$z)-$y-terrain($x-1,$z-1)))**2);
 	} else {
-		my $ydist = -$x/sin(-$thetarad);
-		#my $zdist = $z/sin($psirad);
-		my $dist = sqrt($ydist**2 + $z**2);
-		my $d2muchx = ((terrain($x,$z)-$y)*(XINC)/($yp+terrain($x,$z)-$y-terrain($x+1,$z+1)))/sin(-$thetarad);
-		#following line has issue somewhere
-		my $d2much = sqrt($d2muchx**2 + ((terrain($x,$z)-$y)*($z-$zp)/($yp+terrain($x,$z)-$y-terrain($x+1,$z-1)))**2);
-		$dist -= $d2much;
-		#print "   dist: $dist ($d2muchx) ($d2much)\n";
-		return $dist;
+		$d2muchx = ((terrain($x,$z)-$y)*(XINC)/($yp+terrain($x,$z)-$y-terrain($x+1,$z+1)))/sin(-$thetarad);
+		$d2much = sqrt($d2muchx**2 + ((terrain($x,$z)-$y)*($z-$zp)/($yp+terrain($x,$z)-$y-terrain($x+1,$z-1)))**2);
 	}
+	$dist -= $d2much;
+	#print "   dist: $dist ($d2muchx) ($d2much)\n";
+	return $dist;
 }
 
+###############################################################################
 #subroutine to calculate distance
 sub getdist {
 	my $yp = $H;
@@ -293,36 +296,25 @@ sub getdist {
 		print "dist: $dist\n";
 		return $dist;
 	} else {
-		#if the angle is positive
-		#move away from the scanner in the x direction
-		if ($thetarad >= RESRAD) {
-			for (my $x=1 ; $x<=MAXTERRAIN ; $x+=XINC){
-				my $y = $H - $x/tan($thetarad);
-				my $z = ($x/tan($thetarad))*tan($psirad);
-				#print "y: $y z: $z\n";
-				#if we are below the terrain, the ray has intersected and we're done
-				if ($y < terrain($x,$z)) {
-#					return distapx($x,$z);
-					return distgeo($x,$y,$z,$yp,$zp);
-				}
-				$yp = $y;
-				$zp = $z;
+		for (my $_x=1 ; $_x<=(MAXTERRAIN) ; $_x+=XINC) {	
+			my $x;
+			if ($thetarad <= RESRAD) {
+			#if the angle is negative move away from the scanner in the -x direction
+				$x = -$_x;
+			} else {
+			#if the angle is positive move away from the scanner in the x direction
+				$x = $_x;
 			}
-		#if the angle is negative, we use the same code but with some sign changes
-		#move away from the scanner in the -x direction
-		} else {
-			for (my $x=-1 ; $x>=-(MAXTERRAIN) ; $x-=XINC){
-				my $y = $H - $x/tan($thetarad);
-				my $z = ($y-$H)*tan($psirad);
-				#print "y: $y x: $x\n";
-				#if we are below the terain, the ray has intersected and we're done
-				if ($y < terrain($x,$z)) {					
-#					return distapx($x,$z);
-					return distgeo($x,$y,$z,$yp,$zp);
-				}
- 				$yp = $y;
- 				$zp = $z;			
+			my $y = $H - $x/tan($thetarad);
+			my $z = ($y-$H)*tan($psirad);
+			#print "y: $y x: $x\n";
+			#if we are below the terain, the ray has intersected and we're done
+			if ($y < terrain($x,$z)) {					
+				return distapx($x,$z);
+				#return distgeo($x,$y,$z,$yp,$zp);
 			}
+ 			$yp = $y;
+ 			$zp = $z;			
 		}
 	}
 }
