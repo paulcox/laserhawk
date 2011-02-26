@@ -33,6 +33,9 @@ Start and end
 1297965927.462918758
 1297966725.302998781
 */
+ 
+#include <locale.h>
+
 
 #include <QtGui>
 #include "mainwindow.h"
@@ -41,10 +44,10 @@ Start and end
 
 #define FLOATHOKUYO double
 //#define LOG_NAME	"/home/paul/Documents/LAAS/qtcreator_projs/hokuyomti/log/2011-06-14-22-54-34"
-#define LOG_NAME	"/home/paul/Documents/LAAS/laserhawk/hokuyomti/2011-02-17-19-16-49"
+#define LOG_NAME	"/home/bvdp/laserhawk/hokuyomti/2011-02-17-19-16-49"
 #define NB_SCAN_START   100
-#define NB_SCAN_INCR 10
-#define MTI_LOG_NAME	"/home/paul/Documents/LAAS/laserhawk/hokuyomti/MTI.out"
+#define NB_SCAN_INCR 1
+#define MTI_LOG_NAME	"/home/bvdp/laserhawk/hokuyomti/MTI.out"
 
 QString truc = "proc truc {} { \nobject truc { \npushMatrix \ncolor 200 200 100 \nbox 0 0 -0.5 1 1 1 \ncolor 200 0 0 \n\
 cylinder 0 0 0 x 1 0 2 24 \ncolor 0 200 0 \ncylinder 0 0 0 y 1 0 2 24 \ncolor 0 0 200 \ncylinder 0 0 0 z 1 0 2 24 \n\
@@ -55,6 +58,19 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+
+printf("locale: %s \n ", setlocale( LC_ALL ,NULL))	;
+setlocale( LC_ALL , "en_US.utf8");
+printf("locale: %s \n ", setlocale( LC_ALL ,NULL))	;
+printf("a: %lf \n ",1.423);
+char chaine[1000]="1.2";
+double d;
+sscanf(chaine,"%lf\n",&d);
+printf("d: %lf \n ",d);
+ 
+
+
+
 
     // init
     port_open = true;
@@ -115,6 +131,16 @@ void MainWindow::populate_GUI() {
      button_clear->setToolTip("Clear");
      button_clear->show();
 
+
+     button_animate = new QPushButton(tr("&Animate"));
+     button_animate->setDefault(true);
+     button_animate->setToolTip("Animate");
+     button_animate->show();
+
+     connect(button_animate, SIGNAL(clicked()),
+             this, SLOT(animate()));
+
+
     /* connect(button_kill_gdhe, SIGNAL(clicked()),
              this, SLOT(kill_gdhe_function()));*/
 
@@ -158,10 +184,26 @@ void MainWindow::populate_GUI() {
      layout_G->addWidget(button_scan_gdhe, 3,0);
      layout_G->addWidget(button_clear, 4,0);
      //layout_G->addWidget(button_kill_gdhe, 6,3);
+     layout_G->addWidget(button_animate, 5,0);
 
-     centralWidget()->setLayout(layout_G);
+
+animFlag=0;
+     Timer=new QTimer(this);
+          Timer->setInterval(100);
+          connect(Timer, SIGNAL(timeout()), this, SLOT(on_timer_Event()));
+            Timer->start();
+
+
+            centralWidget()->setLayout(layout_G);
 
      setWindowTitle("log2gdhe App");
+}
+
+
+void MainWindow::on_timer_Event()
+{
+if (animFlag!=0)
+    this->scanGDHE();
 }
 
 MainWindow::~MainWindow()
@@ -289,7 +331,10 @@ void MainWindow::getRange(){
 	sprintf(nomfich, "%s/scan%06d.txt", LOG_NAME, nb_scan);
 	printf("fichier:%s\n", nomfich);
     Fscan = fopen(nomfich, "rt");
-
+if (Fscan==NULL)
+    {
+    this->animFlag=0;
+}
     if(Fscan != NULL)
     {
         for(int i=0 ; i < 1080 ; i++) {
@@ -323,11 +368,17 @@ void MainWindow::getRange(){
 		mtiline = (char *) malloc (mtilinelength + 1);
 		//scan through mti log and find corresponding entry by looking for next closest timestamp (not necessarily closest)
 		do { 
+//char trash[1000];
 			getline(&mtiline,&mtilinelength,Fscanmti);
-			//printf("MTI scan :  %s\n",mtiline);
-			int res = sscanf(mtiline,"%lf QUAT  %lf  %lf  %lf %lf POS %lf %lf    %lf  %2d%c VEL   %lf    %lf    %lf\n", 
-					&mti[0],&mti[1],&mti[2],&mti[3],&mti[4],&mti[5],&mti[6],&mti[7],&mtic,&mtiz,&mti[8],&mti[9],&mti[10]);
-			//printf("fscanf RETURNED %d\n",res);
+                        //printf("MTI scan :  %s\n",mtiline);
+		 	int res = sscanf(mtiline,"%lf QUAT  %lf  %lf  %lf %lf POS %lf %lf    %lf  %2d%c VEL   %lf    %lf    %lf\n", 					&mti[0],&mti[1],&mti[2],&mti[3],&mti[4],&mti[5],&mti[6],&mti[7],&mtic,&mtiz,&mti[8],&mti[9],&mti[10]);
+			
+//	int res = sscanf(mtiline,"%Lf %s  %lf  %lf  %lf %lf %s %lf %lf    %lf  %2d%c %s   %lf    %lf    %lf\n", 	&mti[0],trash,&mti[1],&mti[2],&mti[3],&mti[4],trash,&mti[5],&mti[6],&mti[7],&mtic,&mtiz,trash,&mti[8],&mti[9],&mti[10]);
+			
+
+
+
+                //printf("fscanf RETURNED %d\n",res);
 			mtitime = mti[0];
 			//printf("mti line time %lf\n",mtitime);
 		} while (mtitime < hokuyotime);
@@ -366,6 +417,10 @@ void MainWindow::getRange(){
 #define MINDIF (1-FAC)
 
 
+void MainWindow::animate()
+{
+    animFlag=(animFlag+1)%2;
+}
 void MainWindow::scanGDHE()
 {
     int scanpt;
@@ -541,9 +596,10 @@ void MainWindow::openGDHE()
         // Sleep to allow full opening of GDHE, then connect
         //sleep(3);
 
-        //int error = get_connection((char *)"localhost");
+        int error = get_connection((char *)"localhost");
 		//int error = get_connection((char *)"140.93.7.255");
-		int error = get_connection((char *)"140.93.4.43");		
+		//int error = get_connection((char *)"140.93.4.43");
+ 
         printf("get_con ret: %d\n",error);
 
         // Coordinate Frame at origin
