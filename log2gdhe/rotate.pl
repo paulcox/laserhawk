@@ -18,8 +18,8 @@ my $cnt = 0;
 foreach my $psicnt (1..45) {
 	my $psideg = $psicnt;
 	if ($psideg%5 == 0 ){
-		#`perl mkvirtlog.pl $psideg $cnt`;
-		`perl mkvirtlog.pl $psideg`;
+		`perl mkvirtlog.pl $psideg $cnt`;
+		#`perl mkvirtlog.pl $psideg`;
 		$cnt++;
 		my $psiname = sprintf "%06.2f",$psideg;
 		print "$psiname\n";
