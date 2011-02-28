@@ -48,12 +48,13 @@ use constant IMGWIDTH => 600;
 use constant IMGBDR => 50;
 #nominal terrain height
 use constant NOMTH => (IMGHEIGHT-(2*IMGBDR))/2;
+use constant NOMTHZ => 150;
 #With terrain from -1000..1000 and image 500 px wide, SCALE=1/4
 use constant SCALE => (IMGHEIGHT-2*IMGBDR)/(2*MAXTERRAIN);
 #DEBUG sets the terrain to all flat
 use constant DEBUG => 0;
 #set to 0 to use terrain bitmap for terrain height
-use constant HARDCODEDTERRAIN => 0;
+use constant HARDCODEDTERRAIN => 1;
 
 ###############################################################################
 #height of hokyo sensor relative to terrain (in cm)
@@ -71,6 +72,8 @@ my $black = $im->colorAllocate(0,0,0);
 my $red = $im->colorAllocate(255,0,0);      
 my $blue = $im->colorAllocate(0,0,255);
 my $green = $im->colorAllocate(0,255,0);
+my $purple = $im->colorAllocate(255,255,0);
+my $yellow = $im->colorAllocate(0,255,255);
 
 initimg();
 
@@ -111,18 +114,23 @@ for ($scnpt = HALFWAY-135/RESDEG ; $scnpt < HALFWAY+135/RESDEG ; $scnpt+=1) {
 	
 	$distance[$scnpt] = getdist();
 
-	my $psidist = $H*SCALE/cos($psirad);
-	#draw scan line	
-	$im->line(	IMGWIDTH/2,
+	
+	#draw scan line	every 2 degrees
+	if (($scnpt % 8) == 0) {
+		#my $psidist = $H*SCALE/cos($psirad);
+		my $psidist = $H*SCALE;		
+		$im->line(	IMGWIDTH/2,
 				IMGBDR+NOMTH + $psidist,
 				IMGWIDTH/2   + $distance[$scnpt]*sin($thetarad)*SCALE,
 				IMGBDR+NOMTH + $psidist - $distance[$scnpt]*cos($thetarad)*SCALE,
 				$red);
+	}			
 	#draw little hokuyo
 	$im->arc(IMGWIDTH/2,IMGBDR+NOMTH+$H*SCALE,10,10,135,45,$red);
 		
 	$raycnt++;
-	if ($distance[$scnpt]==0) {$distance[$scnpt]=1;}
+	#replace distance of zero with 1 since hokuyo reports 1 if no distance reading
+	if ($distance[$scnpt]==0) {$distance[$scnpt]=1/10;}
 	printf " dist : %4.2f\n",$distance[$scnpt];
 	printf LOG "%04d       %d\n",$raycnt,$distance[$scnpt]*10 if ($logenable); #multiply to 10 to go from cm to mm
 }
@@ -259,7 +267,7 @@ sub writeimg {
 sub showterrain {
 
 	my $cmapfile = "imgs/colorhmap.png";
-	print "checking if file exists : ";
+	print "checking if colorhmap file exists : ";
 	
     if (-r $cmapfile){
 	#open colorhmap file
@@ -295,9 +303,19 @@ sub showterrain {
 	print "Terrain Cross-section Elevation\n";
 	for (my $i=-(MAXTERRAIN) ; $i<MAXTERRAIN ; $i+=1/SCALE) {
 		my $t = terrain($i,0);
-		$im->setPixel(IMGWIDTH/2+$i*SCALE,IMGBDR+NOMTH+$t*SCALE,$blue);
+		#$im->setPixel(IMGWIDTH/2+$i*SCALE,IMGBDR+NOMTH+$t*SCALE,$blue);
 		#print " $i $t\n";
 	}
+}
+
+sub drawpt {
+	my $x = $_[0]; #distance in x(theta) direction
+	my $y = $_[1]; #height of terrain
+	my $z = $_[2]; #distance in z(psi) direction
+	my $color = $_[3]; #distance in z(psi) direction
+	
+	$im->setPixel(IMGWIDTH/2+$x*SCALE,IMGBDR+NOMTH+$y*SCALE,$color);
+	$im->setPixel(IMGWIDTH/2+$x*SCALE,IMGBDR+NOMTHZ+$z*SCALE,$color);
 }
 
 ###############################################################################
@@ -336,34 +354,42 @@ sub distapx {
 	my $x = $_[0];
 	my $z = $_[1];
 
-	my $Ht = (terrain($x,$z)+terrain($x-1,$z)+terrain($x,$z-1)+terrain($x-1,$z-1))/4;
-	my $xest = ($H-$Ht)*tan($thetarad);
-	my $zest = ($H-$Ht)*tan($psirad);
-	my $distapx = sqrt( ($H-$Ht)**2+($xest)**2+($zest)**2);
+	my $Ht = (terrain($x,$z) + terrain($x-1,$z) + terrain($x,$z-1) + terrain($x-1,$z-1)) / 4;
+	my $xest = ($H-$Ht) * tan($thetarad);
+	my $zest = ($H-$Ht) * tan($psirad);
+	my $distapx = sqrt( ($H-$Ht)**2 + ($xest)**2 + ($zest)**2);
 	#print "   distapx: $distapx | Ht $Ht | x $xest | z $zest\n";
 	return $distapx;
 }
 
 ###############################################################################
-#the following code calculates the exact distance but is more more slightly more computationally expensive maybe
+#the following code calculates the exact distance using a linear interpolation
+#between terrain points.
 sub distgeo {
-	my $x = $_[0];
-	my $y = $_[1];
-	my $z = $_[2];
-	my $yp = $_[3];
-	my $zp = $_[4];
-	my ($d2muchx,$d2much);
+	my $x = $_[0]; #distance in x(theta) direction
+	my $y = $_[1]; #height of terrain
+	my $z = $_[2]; #distance in z(psi) direction
+	my $yp = $_[3]; #height of terrain before going below
+	my $zp = $_[4]; #distance in zprevious inclination
+	#no $xp is needed as we assume x increments by one at each iteration
+	my ($d2muchx,$d2muchy,$d2much);
 
-	my $ydist = $x/sin($thetarad);
-	my $dist = sqrt($ydist**2 + $z**2);
+	my $psidist = $x/sin($thetarad);
+	my $dist = sqrt($psidist**2 + $z**2);
 	if ($thetarad >= RESRAD) {
-		$d2muchx = ((terrain($x,$z)-$y)*(XINC)/($yp+terrain($x,$z)-$y-terrain($x-1,$z-1)))/sin($thetarad);
-		$d2much = sqrt($d2muchx**2 + ((terrain($x,$z)-$y)*($z-$zp)/($yp+terrain($x,$z)-$y-terrain($x-1,$z-1)))**2);
+		$d2muchx = ((terrain($x,$z)-$y)*(XINC)/($yp+terrain($x,$z)-$y-terrain($x-1,$z-1))) / sin($thetarad);
+		$d2muchy = ((terrain($x,$z)-$y)*($z-$zp)/($yp+terrain($x,$z)-$y-terrain($x-1,$z-1)));
+		$d2much = sqrt($d2muchx**2 + $d2muchy**2);
+		drawpt($x-$d2muchx,$y-$d2muchy,$z,$purple) if (($scnpt % 2) == 0);
 	} else {
-		$d2muchx = ((terrain($x,$z)-$y)*(XINC)/($yp+terrain($x,$z)-$y-terrain($x+1,$z+1)))/sin(-$thetarad);
-		$d2much = sqrt($d2muchx**2 + ((terrain($x,$z)-$y)*($z-$zp)/($yp+terrain($x,$z)-$y-terrain($x+1,$z-1)))**2);
+		$d2muchx = ((terrain($x,$z)-$y)*(XINC)/($yp+terrain($x,$z)-$y-terrain($x+1,$z-1))) / sin(-$thetarad);
+		$d2muchy = ((terrain($x,$z)-$y)*($z-$zp)/($yp+terrain($x,$z)-$y-terrain($x+1,$z-1)));
+		$d2much = sqrt($d2muchx**2 + $d2muchy**2);
+		drawpt($x+$d2muchx,$y-$d2muchy,$z,$purple) if (($scnpt % 2) == 0);
 	}
-	$dist -= $d2much;
+	#will potentially need to detect negative psi?
+	
 	#print "   dist: $dist ($d2muchx) ($d2much)\n";
+	$dist -= $d2much;
 	return $dist;
 }

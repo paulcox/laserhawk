@@ -44,10 +44,14 @@ Start and end
 
 #define FLOATHOKUYO double
 //#define LOG_NAME	"/home/paul/Documents/LAAS/qtcreator_projs/hokuyomti/log/2011-06-14-22-54-34"
-#define LOG_NAME	"/home/bvdp/laserhawk/hokuyomti/2011-02-17-19-16-49"
-#define NB_SCAN_START   100
+//#define LOG_NAME	"/home/bvdp/laserhawk/hokuyomti/2011-02-17-19-16-49"
+#define LOG_NAME	"/home/paul/Documents/LAAS/laserhawk/log2gdhe"
+//#define NB_SCAN_START   100
+#define NB_SCAN_START   0
 #define NB_SCAN_INCR 1
-#define MTI_LOG_NAME	"/home/bvdp/laserhawk/hokuyomti/MTI.out"
+//#define MTI_LOG_NAME	"/home/bvdp/laserhawk/hokuyomti/MTI.out"
+//#define MTI_LOG_NAME	"/home/paul/Documents/LAAS/laserhawk/hokuyomti/MTI.out"
+#define MTI_LOG_NAME	"/home/paul/Documents/LAAS/laserhawk/log2gdhe/MTI.out"
 
 QString truc = "proc truc {} { \nobject truc { \npushMatrix \ncolor 200 200 100 \nbox 0 0 -0.5 1 1 1 \ncolor 200 0 0 \n\
 cylinder 0 0 0 x 1 0 2 24 \ncolor 0 200 0 \ncylinder 0 0 0 y 1 0 2 24 \ncolor 0 0 200 \ncylinder 0 0 0 z 1 0 2 24 \n\
@@ -329,6 +333,7 @@ void MainWindow::getRange(){
 	double mtitime,hokuyotime;
 	
 	sprintf(nomfich, "%s/scan%06d.txt", LOG_NAME, nb_scan);
+	//sprintf(nomfich, "%s/scan000001.txt", LOG_NAME, nb_scan);
 	printf("fichier:%s\n", nomfich);
     Fscan = fopen(nomfich, "rt");
 if (Fscan==NULL)
@@ -360,7 +365,7 @@ if (Fscan==NULL)
 		fscanf(Fscan,"%lf\n", &hokuyotime);
 		printf("hokuyotime: %lf \n",hokuyotime);
 		fclose(Fscan);
-				
+#if 1				
 		//1297965927.462918758 QUAT  0.072093  0.746111  0.661814 -0.011095 POS 377098.986 4824479.869    200.101  31T VEL   -0.0100    0.0200    0.0100
 		char* mtiline;
 		size_t mtilinelength = 1000;
@@ -371,19 +376,19 @@ if (Fscan==NULL)
 //char trash[1000];
 			getline(&mtiline,&mtilinelength,Fscanmti);
                         //printf("MTI scan :  %s\n",mtiline);
-		 	int res = sscanf(mtiline,"%lf QUAT  %lf  %lf  %lf %lf POS %lf %lf    %lf  %2d%c VEL   %lf    %lf    %lf\n", 					&mti[0],&mti[1],&mti[2],&mti[3],&mti[4],&mti[5],&mti[6],&mti[7],&mtic,&mtiz,&mti[8],&mti[9],&mti[10]);
+		 	int res = sscanf(mtiline,"%lf QUAT  %lf  %lf  %lf %lf POS %lf %lf    %lf  %2d%c VEL   %lf    %lf    %lf\n",&mti[0],&mti[1],&mti[2],&mti[3],&mti[4],&mti[5],&mti[6],&mti[7],&mtic,&mtiz,&mti[8],&mti[9],&mti[10]);
 			
 //	int res = sscanf(mtiline,"%Lf %s  %lf  %lf  %lf %lf %s %lf %lf    %lf  %2d%c %s   %lf    %lf    %lf\n", 	&mti[0],trash,&mti[1],&mti[2],&mti[3],&mti[4],trash,&mti[5],&mti[6],&mti[7],&mtic,&mtiz,trash,&mti[8],&mti[9],&mti[10]);
-			
 
-
-
-                //printf("fscanf RETURNED %d\n",res);
+			printf("fscanf RETURNED %d\n",res);
 			mtitime = mti[0];
-			//printf("mti line time %lf\n",mtitime);
+			printf("mti line time %lf\n",mtitime);
 		} while (mtitime < hokuyotime);
 		printf("mti line time %lf\n",mtitime);
-		
+
+#else
+		mti[1]=0;mti[2]=0;mti[3]=1;mti[4]=0;mti[5]=0;mti[6]=0;mti[7]=0;
+#endif
 		float sumsqr = 0;
 		for (int i=0;i<4;i++){
 			quat[i] = mti[i+1];
@@ -391,6 +396,7 @@ if (Fscan==NULL)
 			sumsqr += quat[i]*quat[i]; 
 		}
 		//printf("quat norm : %lf\n",sqrt(sumsqr)); //check norm, should be unity
+
 		
 		//convert quat to rot matrix
 		//http://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToMatrix/index.htm
