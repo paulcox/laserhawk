@@ -35,6 +35,12 @@ my $green = $im->colorAllocate(0,255,0);
 my $purple = $im->colorAllocate(255,255,0);
 my $yellow = $im->colorAllocate(0,255,255);
 
+#usage
+#./plotlogs.pl 2011-03-01-10-32-19 1 MTI_test3.out
+#TODO check arguments
+#TODO integrate with animatelogs and determine time between scans to show refresh rate in image
+#TODO detect road angle from horizon (bike lean)
+
 my $path = "/home/paul/Documents/LAAS/laserhawk/biketest";
 my $dirname = $ARGV[0];
 my $scncnt = $ARGV[1];

@@ -1,4 +1,3 @@
-
 #!/usr/bin/perl
 ###############################################################################
 #this script inserts the MTI data corresponding to a laser scan into that scan line logfile
@@ -8,6 +7,9 @@
 #pragmas and modules
 use strict;
 use warnings;
+
+#usage: ./putangles.pl 2011-03-01-10-32-19
+#TODO check arguments
 
 my $path = "/home/paul/Documents/LAAS/laserhawk/biketest";
 my $mtilogname = "MTI_test3.out";

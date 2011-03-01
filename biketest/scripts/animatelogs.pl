@@ -12,7 +12,7 @@ use constant COMBINE    => '/usr/bin/convert';
 my $dirname = "2011-03-01-10-32-19";
 my $path = "/home/paul/Documents/LAAS/laserhawk/biketest";
 #print "image files : $path/$dirname-imgs/scan$scncnt.png\n";
-my $skipnum = 5;
+my $skipnum = 1;
 
 #gif animation parameters : flush previous image, wait 100 ms
 my @COMBINE_OPTIONS = (-dispose => 'previous', -delay => 10, -loop  => 10000);
@@ -22,7 +22,7 @@ my $cnt = 0;
 
 
 #TODO: get number of scans from directory listing
-foreach my $scncnt (1..100) {
+foreach my $scncnt (1..500) {
 	if ($scncnt % $skipnum == 0 ){
 		$cnt++;
 		#my $cntname = sprintf "%06.2f",$scncnt;
