@@ -25,4 +25,5 @@ LIBS += ${ROBOTPKG_BASE}/lib/libMTI.a \
 
 INCLUDEPATH +=  ${ROBOTPKG_BASE}/include \
                 ${ROBOTPKG_BASE}/include/MTI-clients \
-                ${ROBOTPKG_BASE}/include/gearbox/
+                ${ROBOTPKG_BASE}/include/gearbox/ \
+				${ROBOTPKG_BASE}/sources/hardware/MTI/work.paul-Inspiron-1210/MTI-0.4/MTI/

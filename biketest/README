@@ -1,0 +1,17 @@
+Steps to go from raw MTI and Hokuyo scans to animation:
+
+1. get the MTI angles into the scan logs:
+perl putangles.pl 2011-03-01-10-32-19
+TODO: specify MTI filename
+
+2. Create image directory
+
+3. Run make animation
+
+4. Process camera video : detect
+
+Notes:
+
+Detect angle from road surface (assuming it is level)
+Detect angle from horizon in video
+

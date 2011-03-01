@@ -14,17 +14,20 @@ my @COMBINE_OPTIONS = (-dispose => 'previous', -delay => 25, -loop  => 10000);
 			 
 my @files = ();
 my $cnt = 0;
+my $testname = $ARGV[0];
+if (!$testname) {print "please enter a test name\n";exit;}
 
 foreach my $psicnt (1..45) {
 	my $psideg = $psicnt;
 	if ($psideg%5 == 0 ){
-		`perl mkvirtlog.pl $psideg $cnt`;
+		printf "Calling mkvirtlog...";
+		`perl mkvirtlog.pl $testname $psideg $cnt`;
 		#`perl mkvirtlog.pl $psideg`;
 		$cnt++;
 		my $psiname = sprintf "%06.2f",$psideg;
-		print "$psiname\n";
-		push(@files,"imgs/terrain$psiname.png");
+		print "ok. scan and image output for psi $psiname degrees.\n";
+		push(@files,"$testname/imgs/terrain$psiname.png");
 	}
 }
 
-system COMBINE,@COMBINE_OPTIONS,@files,"gif:imgs/terrain.gif";
+system COMBINE,@COMBINE_OPTIONS,@files,"gif:$testname/imgs/terrain.gif";

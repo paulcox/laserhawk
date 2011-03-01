@@ -27,7 +27,7 @@
 #pragmas and modules
 use strict;
 use warnings;
-use diagnostics;
+#use diagnostics;
 use Math::Trig; #for sin/cos/etc
 use GD; #to draw
 use Switch;
@@ -57,6 +57,13 @@ use constant DEBUG => 0;
 use constant HARDCODEDTERRAIN => 1;
 
 ###############################################################################
+
+my ($psideg, $psirad);
+my $subdir;
+my $logenable = 0;
+
+readargs();
+
 #height of hokyo sensor relative to terrain (in cm)
 my $H = 700;
 print "Hokuyo height ; $H cm\n";
@@ -75,34 +82,21 @@ my $green = $im->colorAllocate(0,255,0);
 my $purple = $im->colorAllocate(255,255,0);
 my $yellow = $im->colorAllocate(0,255,255);
 
-initimg();
-
-showterrain();
-
+### Initialize globals
 my $raycnt = 0;
 my $scnpt;
 my @distance;
 my $thetarad;
 my $thetadeg;
 
-my $logenable = 0;
-$logenable = 1 if ($#ARGV == 1);
 
-if ($logenable){
-	my $lognum = $ARGV[1];
-	my $scanlogname = sprintf "scan%06d.txt",$lognum;
-	open(LOG,">$scanlogname");
-	open(MTI,">>MTI.out");
-	print "Logging to $scanlogname\n";
-	
-}
-my $psideg = $ARGV[0];
-#my $psideg = 0.25;
-#my $psideg = 45;
-my $psirad = deg2rad($psideg);
-printf "psirad: %1.4f (%3.2f)\n",$psirad,$psideg;
-print "scnpt   thetarad     (thetadeg)\n";
-print "-----   --------     ----------\n";
+initimg();
+
+showterrain();
+
+printf "psirad: %1.4f (%3.2f)\n", $psirad, $psideg;
+print "scnpt   thetarad     (thetadeg)    dist\n";
+print "-----   --------     ----------    ----------\n";
 
 #get distance between hokyo and terrain for each ray
 for ($scnpt = HALFWAY-135/RESDEG ; $scnpt < HALFWAY+135/RESDEG ; $scnpt+=1) {
@@ -114,7 +108,6 @@ for ($scnpt = HALFWAY-135/RESDEG ; $scnpt < HALFWAY+135/RESDEG ; $scnpt+=1) {
 	
 	$distance[$scnpt] = getdist();
 
-	
 	#draw scan line	every 2 degrees
 	if (($scnpt % 8) == 0) {
 		#my $psidist = $H*SCALE/cos($psirad);
@@ -130,8 +123,8 @@ for ($scnpt = HALFWAY-135/RESDEG ; $scnpt < HALFWAY+135/RESDEG ; $scnpt+=1) {
 		
 	$raycnt++;
 	#replace distance of zero with 1 since hokuyo reports 1 if no distance reading
-	if ($distance[$scnpt]==0) {$distance[$scnpt]=1/10;}
-	printf " dist : %4.2f\n",$distance[$scnpt];
+	if ($distance[$scnpt]==0) {$distance[$scnpt]=1/10;} 
+	else { 	printf "pt $scnpt: theta %1.4f (%1.2f)   %4.2f\n",$thetarad,$thetadeg,$distance[$scnpt];}
 	printf LOG "%04d       %d\n",$raycnt,$distance[$scnpt]*10 if ($logenable); #multiply to 10 to go from cm to mm
 }
 
@@ -167,18 +160,16 @@ sub getdist {
 	my $yp = $H;
 	my $zp = 0;
 	my $dist = 1;
-	
-	printf "pt $scnpt: theta %1.4f (%1.2f) ",$thetarad,$thetadeg;
 		
 	#if the angle is less than the resolution we take H directly
 	if ($thetarad < RESRAD && $thetarad > -(RESRAD) ) { 
 		$dist = $H/cos($psirad);
-		print "dist: $dist\n";
+		#print "dist: $dist\n";
 		return $dist;
 	} else {
 		for (my $_x=1 ; $_x<=(MAXTERRAIN) ; $_x+=XINC) {	
 			my $x;
-			if ($thetarad <= RESRAD) {
+			if ($thetarad < 0) {
 			#if the angle is negative move away from the scanner in the -x direction
 				$x = -$_x;
 			} else {
@@ -200,7 +191,44 @@ sub getdist {
 	}
 }
 
+###Read command line arguments
+sub readargs {
+	#need a minimum of 2 arguments
+	if ($#ARGV < 1){
+	print "Usage: perl mkvirtlog.pl testname psideg <cnt>
+		 testname will be used to create a subdirectory
+		 psideg is the inclination of hokuyo away from vertically down 
+		 If cnt is specified, logging to file will be enabled (creation of MTI.out and scanxxx.txt)
+		 example : perl mkvirtlog.pl test1 0.5 1\n";
+	}
 
+	#test for a valid number for psi (reg exp allows ints and floats)
+	if ($ARGV[1] !~ /^[+-]?\ *(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?$/){print "invalid psi\n";exit;}
+
+	$subdir = $ARGV[0];
+	if (!$subdir) {printf "please specify a subdirectory name\n"; exit;}
+	`mkdir $subdir` if (! -e $subdir);
+	`mkdir $subdir/imgs` if (! -e "$subdir/imgs");
+	print "Files will be placed in $subdir directory\n";
+
+	$psideg = $ARGV[1];
+	#protect from divide by zero if no psi given or if user specifically asks for it
+	$psideg = 0.25 if (!$psideg);
+	$psirad = deg2rad($psideg);
+
+	#if the user doesn't want a log, only the image is created
+	if ($#ARGV == 2){
+		#test for a valid int for cnt
+		if ($ARGV[2] !~ /^[+-]?\ *(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?$/){print "invalid cnt\n";exit;}
+		$logenable = 1;
+		my $lognum = $ARGV[2];
+		my $scanlogname = sprintf "scan%06d.txt",$lognum;
+		open(LOG,">$subdir/$scanlogname");
+		#we always append since the entries are timestamped and it doesn't hurt to add
+		open(MTI,">>$subdir/MTI.out");
+		print "Logging to $scanlogname and MTI.out\n";
+	}
+}
 
 #create an image with border, scale bars, and nominal ground height
 sub initimg {
@@ -255,9 +283,9 @@ sub writeimg {
 	$im->string(gdSmallFont,20,IMGBDR/6,"Virtual terrain laser scanner and logger",$blue);
 	$im->string(gdSmallFont,20,IMGBDR/2,"Paul Cox 2011 LAAS/CNRS",$blue);
 
-	open(IMG, ">imgs/terrain$psiname.png") or die $1;
+	open(IMG, ">$subdir/imgs/terrain$psiname.png") or die $1;
 	binmode IMG;
-	print "Writing image file : imgs/terrain$psiname.png\n";
+	print "Writing image file : $subdir/imgs/terrain$psiname.png\n";
 	print IMG $im->png;
 	close(IMG);
 }
@@ -266,7 +294,7 @@ sub writeimg {
 #show terrain
 sub showterrain {
 
-	my $cmapfile = "imgs/colorhmap.png";
+	my $cmapfile = "$subdir/imgs/colorhmap.png";
 	print "checking if colorhmap file exists : ";
 	
     if (-r $cmapfile){
@@ -286,7 +314,7 @@ sub showterrain {
 				$im2->colorDeallocate($ncol);
 			}
 		}
-		open(IMG, ">imgs/colorhmap.png") or die $1;
+		open(IMG, ">$cmapfile") or die $1;
 		binmode IMG;
 		print "Writing colormap file : $cmapfile\n";
 		print IMG $im2->png;
