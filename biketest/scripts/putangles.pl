@@ -34,12 +34,22 @@ foreach (@scanlist) {
 	#need to check if it's really a time otherwise bail
 	if ($htime < 1287161422) {print "skipping...\n";next;}
 	print "htime: $htime\n";
-	#open file for appending
-	open LOG,">>$_";
+	
+	open(LOG, "<$_") || die("Cannot Open File");
+	my @raw_data=<LOG>; 
+	close(LOG);
+	
+	#open file for writing
+	open LOG,">$_";
 	#print angles corresponding to time in file
 	printf LOG getangles($htime)."\n";
+	#print everything except the last line (the angles)
+	for my $line (@raw_data) {
+		print LOG $line;
+	}
 	#close log
 	close LOG;
+	#last;
 }
 
 ###############################################################################
@@ -50,9 +60,16 @@ sub init_mti_AoH {
 	while (<MTILOG>) {
 		my $rec = {};
 		#split into fields on any number of spaces and stick first four fields into variables, sweet!
-		my ($time,$junk,$ang1,$ang2,$ang3) = split(/\s+/,$_);
-		#ignore any comments in file
-		next if (substr($time,0,1) eq '#');
+		#my ($time,$junk,$ang1,$ang2,$ang3) = split(/\s+/,$_);
+		$_ =~ /^(.*)\sACC.*EUL(.*)POS/;
+		#ignore any comments in file by skipping to the next line if # is detected at start of line
+		next if (!$1);
+		my $time = $1;
+		my $other = $2;
+		#print "time : ".$1."\n";
+		$other =~ /\s+(.+)\s+(.+)\s+(.+)/;
+		my $ang1=$1;my $ang2=$2;my $ang3=$3;
+
 		#hash value is a space delimited string of the angles
 		$rec->{$time} =  $ang1." ".$ang2." ".$ang3;
 		push @mti, $rec;

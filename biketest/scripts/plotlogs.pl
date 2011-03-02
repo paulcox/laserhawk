@@ -54,22 +54,25 @@ printf "SCALE: ".SCALE."\n";
 
 initimg();
 
-my $cnt=0;
+my $cnt = 0;
 my $dist;
-my $time=0;
-my $maxdist=0;
+my $time = 0;
+my $maxdist = 0;
+my $mindist = 10;
 my ($ang1,$ang2,$ang3);
-
+$ang1=0;
 #grab each scanpoint in log and plot on image
 while (<SCNLOG>){
 	chomp;
-	if ($time != 0 ) {($ang1,$ang2,$ang3) = split(/ /,$_); last;}
+	#angles now at start of log thanks to putangles script
+	if ($ang1 == 0 ) {($ang1,$ang2,$ang3) = split(/\s+/,$_);next;}
 	if ($cnt == 1079) {$time=$_ ; next;}
 	($cnt,$dist) = split(/       /,$_);
+	next if ($dist < $mindist);
 	$maxdist = $dist if ($dist>$maxdist);
-	my $theta = $cnt*RESRAD - deg2rad(135); 
-	my $x = $dist*sin($theta)/10;
-	my $y = $dist*cos($theta)/10;
+	my $theta = $cnt*RESRAD - deg2rad(135);
+	my $x = $dist*sin($theta-deg2rad($ang2))/10;
+	my $y = $dist*cos($theta-deg2rad($ang2))/10;
 	drawpt($x,$y);
 }
 
@@ -91,7 +94,6 @@ exit;
 sub drawpt {
 	my $x = -$_[0]; #distance in x(theta) direction
 	my $y = -$_[1]; #height of terrain
-	#my $color = $_[3]; #distance in z(psi) direction
 	my $color = $red;
 	
 	$im->setPixel(IMGWIDTH/2+$x*SCALE,IMGBDR+NOMTH+$y*SCALE,$color);
