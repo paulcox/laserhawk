@@ -16,17 +16,23 @@ my @files = ();
 my $cnt = 0;
 my $testname = $ARGV[0];
 if (!$testname) {print "please enter a test name\n";exit;}
+my $Hy = 700;
+my $Hx = 0;
+my $psideg = 15;
+my $phideg = 0;
 
-foreach my $psicnt (1..45) {
-	my $psideg = $psicnt;
-	if ($psideg%5 == 0 ){
+foreach my $loopcnt (1..45) {
+	#my $psideg = $loopcnt;
+	my $Hz = 2*$loopcnt;
+	if ($loopcnt%5 == 0 ){
 		printf "Calling mkvirtlog...";
-		`perl mkvirtlog.pl $testname $psideg $cnt`;
-		#`perl mkvirtlog.pl $psideg`;
+		`perl mkvirtlog.pl $testname $psideg $phideg $Hy $Hx $Hz $cnt`;
+		#perl mkvirtlog.pl test1 0.5 0.5 700 0 40 
 		$cnt++;
 		my $psiname = sprintf "%06.2f",$psideg;
-		print "ok. scan and image output for psi $psiname degrees.\n";
-		push(@files,"$testname/imgs/terrain$psiname.png");
+		my $imgname = $psiname."_$Hy"."_$Hx"."_$Hz";
+		print "ok. scan and image output for $imgname .\n";
+		push(@files,"$testname/imgs/terrain$imgname.png");
 	}
 }
 

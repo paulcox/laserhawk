@@ -55,18 +55,25 @@ use constant SCALE => (IMGHEIGHT-2*IMGBDR)/(2*MAXTERRAIN);
 use constant DEBUG => 0;
 #set to 0 to use terrain bitmap for terrain height
 use constant HARDCODEDTERRAIN => 1;
+#draw cross section of terrain in image
+use constant SHOWCS => 0;
 
 ###############################################################################
 
-my ($psideg, $psirad);
+my ($psideg, $psirad,$phideg,$phirad);
 my $subdir;
 my $logenable = 0;
 
+#height of hokyo sensor relative to terrain (in cm)
+my $Hy;
+#hokuyo displacement in theta direction
+my $Hx;
+#hokuyo displacement in psi direction
+my $Hz;
+
 readargs();
 
-#height of hokyo sensor relative to terrain (in cm)
-my $H = 700;
-print "Hokuyo height ; $H cm\n";
+print "Hokuyo height : $Hy cm , position : $Hx,$Hz\n";
 print "Ouput image scale: ".1/SCALE." cm per pixel\n";
 
 # create a new image and define globals (colors)
@@ -79,8 +86,8 @@ my $black = $im->colorAllocate(0,0,0);
 my $red = $im->colorAllocate(255,0,0);      
 my $blue = $im->colorAllocate(0,0,255);
 my $green = $im->colorAllocate(0,255,0);
-my $purple = $im->colorAllocate(255,255,0);
-my $yellow = $im->colorAllocate(0,255,255);
+my $magenta = $im->colorAllocate(255,0,255);
+my $cyan = $im->colorAllocate(0,255,255);
 
 ### Initialize globals
 my $raycnt = 0;
@@ -95,8 +102,12 @@ initimg();
 showterrain();
 
 printf "psirad: %1.4f (%3.2f)\n", $psirad, $psideg;
+printf "phirad: %1.4f (%3.2f)\n", $phirad, $phideg;
 print "scnpt   thetarad     (thetadeg)    dist\n";
 print "-----   --------     ----------    ----------\n";
+
+#draw little hokuyo
+$im->arc(IMGWIDTH/2,IMGBDR+NOMTH+$Hy*SCALE,10,10,135,45,$red);
 
 #get distance between hokyo and terrain for each ray
 for ($scnpt = HALFWAY-135/RESDEG ; $scnpt < HALFWAY+135/RESDEG ; $scnpt+=1) {
@@ -108,23 +119,31 @@ for ($scnpt = HALFWAY-135/RESDEG ; $scnpt < HALFWAY+135/RESDEG ; $scnpt+=1) {
 	
 	$distance[$scnpt] = getdist();
 
-	#draw scan line	every 2 degrees
-	if (($scnpt % 8) == 0) {
-		#my $psidist = $H*SCALE/cos($psirad);
-		my $psidist = $H*SCALE;		
-		$im->line(	IMGWIDTH/2,
-				IMGBDR+NOMTH + $psidist,
-				IMGWIDTH/2   + $distance[$scnpt]*sin($thetarad)*SCALE,
-				IMGBDR+NOMTH + $psidist - $distance[$scnpt]*cos($thetarad)*SCALE,
-				$red);
-	}			
-	#draw little hokuyo
-	$im->arc(IMGWIDTH/2,IMGBDR+NOMTH+$H*SCALE,10,10,135,45,$red);
-		
-	$raycnt++;
 	#replace distance of zero with 1 since hokuyo reports 1 if no distance reading
-	if ($distance[$scnpt]==0) {$distance[$scnpt]=1/10;} 
-	else { 	printf "pt $scnpt: theta %1.4f (%1.2f)   %4.2f\n",$thetarad,$thetadeg,$distance[$scnpt];}
+	if ($distance[$scnpt] == 0) {
+		$distance[$scnpt]=1/10;
+	} else {
+		printf "pt $scnpt: theta %1.4f (%1.2f)   %4.2f\n",$thetarad,$thetadeg,$distance[$scnpt];
+			#draw scan line	every 2 degrees
+		if (($scnpt % 8) == 0) {
+			#my $psidist = $Hy*SCALE/cos($psirad);
+			my $vdist = $Hy*SCALE;		
+			my $B = $distance[$scnpt]*SCALE/sqrt(1+tan($thetarad)**2+tan($psirad)**2);
+			#show on elevation view
+			$im->line(	IMGWIDTH/2,
+						IMGBDR+NOMTH + $vdist,
+						IMGWIDTH/2   + tan($thetarad)*$B,
+						IMGBDR+NOMTH + $vdist - $B,
+						$red);
+			#show on bird's eye view		
+			$im->line(	IMGWIDTH/2,
+						IMGBDR+NOMTHZ +$Hz*SCALE,
+						IMGWIDTH/2   + tan($thetarad)*$B,
+						IMGBDR+NOMTHZ - tan($psirad)*$B +$Hz*SCALE,
+						$red);
+		}	
+	}
+	$raycnt++;
 	printf LOG "%04d       %d\n",$raycnt,$distance[$scnpt]*10 if ($logenable); #multiply to 10 to go from cm to mm
 }
 
@@ -140,7 +159,7 @@ if ($logenable) {
 	my $q = Math::Quaternion::rotation($psirad,1,0,0);
 	my $qtheta = $q->rotation_angle;
 	my @v = $q->rotation_axis;
-	my $mtiline = sprintf "%f QUAT  %f  %f  %f %f POS 0 0    %f  31T VEL   0    0    0\n",$timeofday,$qtheta,$v[0],$v[1],$v[2],$H/100;
+	my $mtiline = sprintf "%f QUAT  %f  %f  %f %f POS 0 0    %f  31T VEL   0    0    0\n",$timeofday,$qtheta,$v[0],$v[1],$v[2],$Hy/100;
 	#print $mtiline;
 	printf MTI $mtiline;
 	close MTI;
@@ -157,13 +176,13 @@ sub getdist {
 	#don't bother continuing over 60 degrees
 	return 0 if ($thetarad < -(pi)/3 || $thetarad >pi/3);
 
-	my $yp = $H;
-	my $zp = 0;
+	my $yp = $Hy;
+	my $zp = $Hz;
 	my $dist = 1;
 		
-	#if the angle is less than the resolution we take H directly
+	#if the angle is less than the resolution we take height over terrain directly
 	if ($thetarad < RESRAD && $thetarad > -(RESRAD) ) { 
-		$dist = $H/cos($psirad);
+		$dist = $Hy/cos($psirad)-terrain($Hx,$Hz);
 		#print "dist: $dist\n";
 		return $dist;
 	} else {
@@ -176,14 +195,14 @@ sub getdist {
 			#if the angle is positive move away from the scanner in the x direction
 				$x = $_x;
 			}
-			my $y = $H - $x/tan($thetarad);
-			#below should potentially be $H-$y
-			my $z = ($y-$H)*tan($psirad);
+			my $y = $Hy - $x/tan($thetarad);
+			#below should potentially be $Hy-$y
+			my $z = ($y-$Hy)*tan($psirad);
 			#print "y: $y x: $x\n";
 			#if we are below the terain, the ray has intersected and we're done
-			if ($y < terrain($x,$z)) {					
+			if ($y < terrain($x,$z+$Hz)) {					
 				#return distapx($x,$z);
-				return distgeo($x,$y,$z,$yp,$zp);
+				return distgeo($x,$y,$z+$Hz,$yp,$zp+$Hz);
 			}
  			$yp = $y;
  			$zp = $z;			
@@ -193,17 +212,30 @@ sub getdist {
 
 ###Read command line arguments
 sub readargs {
-	#need a minimum of 2 arguments
-	if ($#ARGV < 1){
-	print "Usage: perl mkvirtlog.pl testname psideg <cnt>
+	#need a minimum of 6 arguments
+	if ($#ARGV < 5){
+	print "Usage: perl mkvirtlog.pl testname psideg phideg Hy Hx Hz <cnt>
 		 testname will be used to create a subdirectory
 		 psideg is the inclination of hokuyo away from vertically down 
-		 If cnt is specified, logging to file will be enabled (creation of MTI.out and scanxxx.txt)
-		 example : perl mkvirtlog.pl test1 0.5 1\n";
+		 phideg is rotation around vertical (aka y) axis (like yaw)
+		 Hy Scanner height above terrain (cm)
+		 Hx Scanner displacement in theta/scan direction (cm)
+		 Hz Scanner displacement in psi direction (cm)
+		 If cnt is specified, logging to file will be enabled 
+		   (i.e. creation of MTI.out and scanxxx.txt)
+		 example : perl mkvirtlog.pl test1 0.5 0.5 700 0 40 1\n";
 	}
 
 	#test for a valid number for psi (reg exp allows ints and floats)
 	if ($ARGV[1] !~ /^[+-]?\ *(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?$/){print "invalid psi\n";exit;}
+	#test for a valid number for phi (reg exp allows ints and floats)
+	if ($ARGV[2] !~ /^[+-]?\ *(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?$/){print "invalid phi\n";exit;}
+		#test for a valid number for Hy (reg exp allows ints and floats)
+	if ($ARGV[3] !~ /^[+-]?\ *(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?$/){print "invalid Hy\n";exit;}
+		#test for a valid number for Hx (reg exp allows ints and floats)
+	if ($ARGV[4] !~ /^[+-]?\ *(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?$/){print "invalid Hx\n";exit;}
+		#test for a valid number for Hz (reg exp allows ints and floats)
+	if ($ARGV[5] !~ /^[+-]?\ *(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?$/){print "invalid Hz\n";exit;}
 
 	$subdir = $ARGV[0];
 	if (!$subdir) {printf "please specify a subdirectory name\n"; exit;}
@@ -215,11 +247,18 @@ sub readargs {
 	#protect from divide by zero if no psi given or if user specifically asks for it
 	$psideg = 0.25 if (!$psideg);
 	$psirad = deg2rad($psideg);
+	
+	$phideg = $ARGV[2];
+	#protect from divide by zero if no psi given or if user specifically asks for it
+	$phirad = deg2rad($phideg);
+	$Hy = $ARGV[3];
+	$Hx = $ARGV[4];
+	$Hz = $ARGV[5];
 
 	#if the user doesn't want a log, only the image is created
-	if ($#ARGV == 2){
+	if ($#ARGV == 6){
 		#test for a valid int for cnt
-		if ($ARGV[2] !~ /^[+-]?\ *(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?$/){print "invalid cnt\n";exit;}
+		if ($ARGV[6] !~ /^[+-]?\ *(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?$/){print "invalid cnt\n";exit;}
 		$logenable = 1;
 		my $lognum = $ARGV[2];
 		my $scanlogname = sprintf "scan%06d.txt",$lognum;
@@ -243,9 +282,9 @@ sub initimg {
     $im->rectangle(0,0,IMGWIDTH-1,IMGHEIGHT,$black);
 
 	#draw scale bars, first horiz
-	$im->line(IMGBDR/2+10,IMGBDR/2,IMGWIDTH-(IMGBDR),IMGBDR/2,$green);
+	$im->line(IMGBDR/2+10,IMGBDR/2,IMGWIDTH-(IMGBDR),IMGBDR/2,$cyan);
 	#now vertical
-	$im->line(IMGBDR/2+10,IMGBDR/2,IMGBDR/2+10,IMGHEIGHT-(IMGBDR),$green);
+	$im->line(IMGBDR/2+10,IMGBDR/2,IMGBDR/2+10,IMGHEIGHT-(IMGBDR),$cyan);
 	
 }
 
@@ -253,8 +292,6 @@ sub initimg {
 ###############################################################################
 #write image to file
 sub writeimg {
-	my $psiname = sprintf "%06.2f",$psideg;
-	
 	$im->flipVertical();
 	#add scale bar ticks and text
 	for (my $i=0 ; $i<=IMGHEIGHT-2*IMGBDR ; $i+=10 ) {
@@ -262,30 +299,46 @@ sub writeimg {
 		
 		#vertical scale bar
 		if ($i%50 == 0) {
-			$txt = sprintf "%d",-($i/SCALE-1000);
-			$im->string(gdSmallFont,5,IMGBDR+$i-5,$txt,$white);
-			$im->line(IMGBDR/2+10,IMGBDR+$i,IMGBDR/2+18,IMGBDR+$i,$green);
+			if ($i<=300) {
+				$txt = sprintf "%d",-($i/SCALE-1000);
+				$im->string(gdSmallFont,5,IMGBDR+$i-5,$txt,$magenta);
+			} else {
+				$txt = sprintf "%d",($i-350)/SCALE;
+				$im->string(gdSmallFont,5,IMGBDR+$i-5,$txt,$green);
+			}
+			
+			$im->line(IMGBDR/2+10,IMGBDR+$i,IMGBDR/2+18,IMGBDR+$i,$cyan);
 		} else {
-			$im->line(IMGBDR/2+10,IMGBDR+$i,IMGBDR/2+15,IMGBDR+$i,$green);
+			$im->line(IMGBDR/2+10,IMGBDR+$i,IMGBDR/2+15,IMGBDR+$i,$cyan);
 		}
 		
 		#horiz scale bar
 		if ($i%50 == 0) {
 			$txt = sprintf "%d",$i/SCALE-1000;
 			$im->string(gdSmallFont,IMGBDR+$i-10,IMGHEIGHT-(IMGBDR)/2+5,$txt,$white);
-			$im->line(IMGBDR+$i,IMGHEIGHT-(IMGBDR)/2+3,IMGBDR+$i,IMGHEIGHT-(IMGBDR)/2-8,$green);
+			$im->line(IMGBDR+$i,IMGHEIGHT-(IMGBDR)/2+3,IMGBDR+$i,IMGHEIGHT-(IMGBDR)/2-8,$cyan);
 		} else {
-			$im->line(IMGBDR+$i,IMGHEIGHT-(IMGBDR)/2,IMGBDR+$i,IMGHEIGHT-(IMGBDR)/2-5,$green);
+			$im->line(IMGBDR+$i,IMGHEIGHT-(IMGBDR)/2,IMGBDR+$i,IMGHEIGHT-(IMGBDR)/2-5,$cyan);
 		}
 	}
 	#Print parameters
-	$im->string(gdSmallFont,400,IMGBDR/2,"H:$H cm  Psi:$psiname ",$white);
+	$im->string(gdSmallFont,400,IMGBDR/6,"Hy: $Hy Hz: $Hz Hx: $Hx cm ",$white);
+	$im->string(gdSmallFont,400,IMGBDR/2,"Psi: $psideg deg Phi: $phideg",$white);
 	$im->string(gdSmallFont,20,IMGBDR/6,"Virtual terrain laser scanner and logger",$blue);
 	$im->string(gdSmallFont,20,IMGBDR/2,"Paul Cox 2011 LAAS/CNRS",$blue);
+	
+	#label axes
+	$im->string(gdSmallFont,IMGWIDTH-(IMGBDR)+8,IMGWIDTH/2-8,"-> +x",$blue);
+	$im->stringUp(gdSmallFont,IMGWIDTH-(IMGBDR),IMGWIDTH/2-8,"-> +y",$magenta);
+	
+	$im->string(gdSmallFont,IMGWIDTH-(IMGBDR)+8,IMGHEIGHT-(NOMTHZ)-(IMGBDR)-8,"-> +x",$blue);
+	$im->stringUp(gdSmallFont,IMGWIDTH-(IMGBDR),IMGHEIGHT-(NOMTHZ)-(IMGBDR)-8,"-> -z",$green);
 
-	open(IMG, ">$subdir/imgs/terrain$psiname.png") or die $1;
+	my $psiname = sprintf "%06.2f",$psideg;
+	my $imgname = $psiname."_$Hy"."_$Hx"."_$Hz";
+	open(IMG, ">$subdir/imgs/terrain$imgname.png") or die $1;
 	binmode IMG;
-	print "Writing image file : $subdir/imgs/terrain$psiname.png\n";
+	print "Writing image file : $subdir/imgs/terrain$imgname.png\n";
 	print IMG $im->png;
 	close(IMG);
 }
@@ -323,16 +376,25 @@ sub showterrain {
 	#copy colorhmap into our image
 	$im->copy($im2,IMGBDR,IMGBDR,0,0,2*MAXTERRAIN*SCALE,2*MAXTERRAIN*SCALE);
 
-	#show terrain baseline
-	$im->line(IMGBDR,IMGBDR+NOMTH,IMGWIDTH-(IMGBDR),IMGBDR+NOMTH,$black);
+	#show world reference axes
+	#elevation x axis
+	$im->line(IMGBDR,IMGBDR+NOMTH,IMGWIDTH-(IMGBDR),IMGBDR+NOMTH,$blue);
+	#bird's eye x axis
+	$im->line(IMGBDR,IMGBDR+NOMTHZ,IMGWIDTH-(IMGBDR),IMGBDR+NOMTHZ,$blue);
+	#y axis for elevation 
+	$im->line(IMGWIDTH/2,IMGBDR+(NOMTH+NOMTHZ)/2,IMGWIDTH/2,IMGHEIGHT-(IMGBDR),$magenta);
+	#z axis for bird's eye view
+	$im->line(IMGWIDTH/2,IMGBDR,IMGWIDTH/2,IMGBDR+(NOMTH+NOMTHZ)/2,$green);
 	#draw little hokuyo
-    $im->arc(IMGWIDTH/2,IMGBDR+NOMTH+$H*SCALE,10,10,135,45,$red);
+    $im->arc(IMGWIDTH/2,IMGBDR+NOMTH+$Hy*SCALE,10,10,135,45,$red);
 
 	print "Terrain Cross-section Elevation\n";
-	for (my $i=-(MAXTERRAIN) ; $i<MAXTERRAIN ; $i+=1/SCALE) {
-		my $t = terrain($i,0);
-		#$im->setPixel(IMGWIDTH/2+$i*SCALE,IMGBDR+NOMTH+$t*SCALE,$blue);
-		#print " $i $t\n";
+	if (SHOWCS == 1) {
+		for (my $i=-(MAXTERRAIN) ; $i<MAXTERRAIN ; $i+=1/SCALE) {
+			my $t = terrain($i,0);
+			$im->setPixel(IMGWIDTH/2+$i*SCALE,IMGBDR+NOMTH+$t*SCALE,$blue);
+			#print " $i $t\n";
+		}
 	}
 }
 
@@ -383,9 +445,9 @@ sub distapx {
 	my $z = $_[1];
 
 	my $Ht = (terrain($x,$z) + terrain($x-1,$z) + terrain($x,$z-1) + terrain($x-1,$z-1)) / 4;
-	my $xest = ($H-$Ht) * tan($thetarad);
-	my $zest = ($H-$Ht) * tan($psirad);
-	my $distapx = sqrt( ($H-$Ht)**2 + ($xest)**2 + ($zest)**2);
+	my $xest = ($Hy-$Ht) * tan($thetarad);
+	my $zest = ($Hy-$Ht) * tan($psirad);
+	my $distapx = sqrt( ($Hy-$Ht)**2 + ($xest)**2 + ($zest)**2);
 	#print "   distapx: $distapx | Ht $Ht | x $xest | z $zest\n";
 	return $distapx;
 }
@@ -408,12 +470,12 @@ sub distgeo {
 		$d2muchx = ((terrain($x,$z)-$y)*(XINC)/($yp+terrain($x,$z)-$y-terrain($x-1,$z-1))) / sin($thetarad);
 		$d2muchy = ((terrain($x,$z)-$y)*($z-$zp)/($yp+terrain($x,$z)-$y-terrain($x-1,$z-1)));
 		$d2much = sqrt($d2muchx**2 + $d2muchy**2);
-		drawpt($x-$d2muchx,$y-$d2muchy,$z,$purple) if (($scnpt % 2) == 0);
+		drawpt($x-$d2muchx,$y-$d2muchy,$z,$magenta) if (($scnpt % 2) == 0);
 	} else {
 		$d2muchx = ((terrain($x,$z)-$y)*(XINC)/($yp+terrain($x,$z)-$y-terrain($x+1,$z-1))) / sin(-$thetarad);
 		$d2muchy = ((terrain($x,$z)-$y)*($z-$zp)/($yp+terrain($x,$z)-$y-terrain($x+1,$z-1)));
 		$d2much = sqrt($d2muchx**2 + $d2muchy**2);
-		drawpt($x+$d2muchx,$y-$d2muchy,$z,$purple) if (($scnpt % 2) == 0);
+		drawpt($x+$d2muchx,$y-$d2muchy,$z,$magenta) if (($scnpt % 2) == 0);
 	}
 	#will potentially need to detect negative psi?
 	
