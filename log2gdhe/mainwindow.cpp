@@ -45,13 +45,13 @@ Start and end
 #define FLOATHOKUYO double
 //#define LOG_NAME	"/home/paul/Documents/LAAS/qtcreator_projs/hokuyomti/log/2011-06-14-22-54-34"
 //#define LOG_NAME	"/home/bvdp/laserhawk/hokuyomti/2011-02-17-19-16-49"
-#define LOG_NAME	"/home/paul/Documents/LAAS/laserhawk/log2gdhe"
+#define LOG_NAME	"/home/paul/Documents/LAAS/laserhawk/log2gdhe/test"
 //#define NB_SCAN_START   100
 #define NB_SCAN_START   0
 #define NB_SCAN_INCR 1
 //#define MTI_LOG_NAME	"/home/bvdp/laserhawk/hokuyomti/MTI.out"
 //#define MTI_LOG_NAME	"/home/paul/Documents/LAAS/laserhawk/hokuyomti/MTI.out"
-#define MTI_LOG_NAME	"/home/paul/Documents/LAAS/laserhawk/log2gdhe/MTI.out"
+#define MTI_LOG_NAME	"/home/paul/Documents/LAAS/laserhawk/log2gdhe/test/MTI.out"
 
 QString truc = "proc truc {} { \nobject truc { \npushMatrix \ncolor 200 200 100 \nbox 0 0 -0.5 1 1 1 \ncolor 200 0 0 \n\
 cylinder 0 0 0 x 1 0 2 24 \ncolor 0 200 0 \ncylinder 0 0 0 y 1 0 2 24 \ncolor 0 0 200 \ncylinder 0 0 0 z 1 0 2 24 \n\
@@ -352,10 +352,10 @@ if (Fscan==NULL)
             thetarad = theta * M_PI/180.0;
 
             // calcul des coordonnées x, y dans le repère sensor
-            x = cos(thetarad) * var[1];
-            y = sin(thetarad) * var[1];
+            x = cos(thetarad) * var[1]/1000.;
+            y = sin(thetarad) * var[1]/1000.;
 
-            savedata.data[i] = var[1];
+            savedata.data[i] = var[1]/1000.;
             savedata.angle[i] = thetarad;
             savedata.x_data[i] = x;
             savedata.y_data[i] = y;
@@ -366,20 +366,16 @@ if (Fscan==NULL)
 		printf("hokuyotime: %lf \n",hokuyotime);
 		fclose(Fscan);
 #if 1				
-		//1297965927.462918758 QUAT  0.072093  0.746111  0.661814 -0.011095 POS 377098.986 4824479.869    200.101  31T VEL   -0.0100    0.0200    0.0100
 		char* mtiline;
 		size_t mtilinelength = 1000;
 	
 		mtiline = (char *) malloc (mtilinelength + 1);
 		//scan through mti log and find corresponding entry by looking for next closest timestamp (not necessarily closest)
 		do { 
-//char trash[1000];
 			getline(&mtiline,&mtilinelength,Fscanmti);
-                        //printf("MTI scan :  %s\n",mtiline);
-		 	int res = sscanf(mtiline,"%lf QUAT  %lf  %lf  %lf %lf POS %lf %lf    %lf  %2d%c VEL   %lf    %lf    %lf\n",&mti[0],&mti[1],&mti[2],&mti[3],&mti[4],&mti[5],&mti[6],&mti[7],&mtic,&mtiz,&mti[8],&mti[9],&mti[10]);
-			
-//	int res = sscanf(mtiline,"%Lf %s  %lf  %lf  %lf %lf %s %lf %lf    %lf  %2d%c %s   %lf    %lf    %lf\n", 	&mti[0],trash,&mti[1],&mti[2],&mti[3],&mti[4],trash,&mti[5],&mti[6],&mti[7],&mtic,&mtiz,trash,&mti[8],&mti[9],&mti[10]);
-
+			//printf("MTI scan :  %s\n",mtiline);
+			//format: //1297965927.462918758 QUAT  0.072093  0.746111  0.661814 -0.011095 POS 377098.986 4824479.869    200.101  31T VEL   -0.0100    0.0200    0.0100
+		 	int res = sscanf(mtiline,"%lf QUAT  %lf  %lf  %lf %lf POS %lf %lf    %lf  %2d%c VEL   %lf    %lf    %lf\n",&mti[0],&mti[1],&mti[2],&mti[3],&mti[4],&mti[5],&mti[6],&mti[7],&mtic,&mtiz,&mti[8],&mti[9],&mti[10]);			
 			printf("fscanf RETURNED %d\n",res);
 			mtitime = mti[0];
 			printf("mti line time %lf\n",mtitime);
@@ -397,19 +393,23 @@ if (Fscan==NULL)
 		}
 		//printf("quat norm : %lf\n",sqrt(sumsqr)); //check norm, should be unity
 
-		
 		//convert quat to rot matrix
 		//http://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToMatrix/index.htm
 		//0=w		1=x		2=y		3=z
 		R11 = 1-2*quat[2]*quat[2]-2*quat[3]*quat[3]; R12 = 2*quat[1]*quat[2] - 2*quat[3]*quat[0]; R13 = 2*quat[1]*quat[3] + 2*quat[2]*quat[0];
 		R21 = 2*quat[1]*quat[2] + 2*quat[3]*quat[0]; R22 = 1-2*quat[1]*quat[1]-2*quat[3]*quat[3]; R23 = 2*quat[2]*quat[3] - 2*quat[1]*quat[0];
 		R31 = 2*quat[1]*quat[3] - 2*quat[2]*quat[0]; R32 = 2*quat[2]*quat[3] + 2*quat[1]*quat[0]; R33 = 1-2*quat[1]*quat[1]-2*quat[2]*quat[2];
-		
-		savedata.rx=0;savedata.ry=0;savedata.rz=0;
+		//old rotation matrix from euler angles
+		// Rx = Rx_xsens*M_PI/180; Ry = Ry_xsens*M_PI/180; Rz = Rz_xsens*M_PI/180;
+		//double R[9] = {	cos(Ry)*cos(Rz), -cos(Rx)*sin(Rz)+cos(Rz)*sin(Rx)*sin(Ry),  sin(Rx)*sin(Rz)+cos(Rx)*cos(Rz)*sin(Ry),
+		//					cos(Ry)*sin(Rz),  cos(Rx)*cos(Rz)+sin(Rx)*sin(Ry)*sin(Rz), -cos(Rz)*sin(Rx)+cos(Rx)*sin(Ry)*sin(Rz),
+		//					-sin(Ry)    ,              cos(Ry)*sin(Rx)            ,              cos(Rx)*cos(Ry)            };*/
 		
 		lat = mti[5];
 		lon = mti[6];
 		alt = mti[7];
+		
+		//all translations are calculated relative to the first data point
 		if (latini == 0) {latini=lat;lonini=lon;altini=alt;lat=0;lon=0;alt=0;} else {lat-=latini;lon-=lonini;alt-=altini;}
 		printf("lat: %lf lon: %lf alt: %lf\n",lat,lon,alt);
 
@@ -432,7 +432,7 @@ void MainWindow::scanGDHE()
     int scanpt;
     static int md;
 //    double Rx, Ry, Rz;
-    double theta,thetarad;
+//    double theta,thetarad;
     float x,y,z, new_x, new_y, new_z;
     double depth = 0.;
 	double pdepth = 0.;
@@ -450,23 +450,14 @@ void MainWindow::scanGDHE()
 			// Get range data
 			getRange();
 
-			/*Rx_xsens = 0; Ry_xsens = 0; Rz_xsens = 0;
-            Rx_point = &Rx_xsens; Ry_point = &Ry_xsens; Rz_point = &Rz_xsens;*/
-
-            // Rx = Rx_xsens*M_PI/180; Ry = Ry_xsens*M_PI/180; Rz = Rz_xsens*M_PI/180;
-            // Calcul de la matrice de rotation World to Sensor
-            /*double R[9]      = { cos(Ry)*cos(Rz), -cos(Rx)*sin(Rz)+cos(Rz)*sin(Rx)*sin(Ry),  sin(Rx)*sin(Rz)+cos(Rx)*cos(Rz)*sin(Ry),
-			     cos(Ry)*sin(Rz),  cos(Rx)*cos(Rz)+sin(Rx)*sin(Ry)*sin(Rz), -cos(Rz)*sin(Rx)+cos(Rx)*sin(Ry)*sin(Rz),
-			        -sin(Ry)    ,              cos(Ry)*sin(Rx)            ,              cos(Rx)*cos(Ry)            };*/
-			
-            // Draw xsens reference frame in GDHE
+            //Draw xsens reference frame in GDHE
             //eval_expression((char *)"set robots(IMU) { color 0 0 255; repere }");
 			eval_expression((char *)"set robots(IMU) { truc }");
 			//QString setIMU = "set pos(IMU) { 0 0 0 0 0 0 }";
             QString setIMU = "set pos(IMU) { ";
 			//QTextStream(&setIMU) << "0 0 0 " << lat << " " << lon << " " << alt << " }";
 			//ATTENTION: order of the three angles in following line was done arbitrarily
-			QTextStream(&setIMU) << atan2(-R31,R11) << " " << asin(R21) << " " << atan2(-R23,R22) << " " << lat << " " << lon << " " << alt << " }";
+			QTextStream(&setIMU) << 180/M_PI*atan2(-R31,R11) << " " << 180/M_PI*asin(R21) << " " << 180/M_PI*atan2(-R23,R22) << " " << lat << " " << lon << " " << alt << " }";
 			eval_expression(setIMU.toLatin1().data());
             printf("\nimu gdhe string: %s \n",setIMU.toLatin1().data());
 			
@@ -487,13 +478,12 @@ void MainWindow::scanGDHE()
 			QString setScan = "set pos(traj) { 0 0 0 0 0 0 }";
 			eval_expression(setScan.toLatin1().data());
 
-
             // for each scan point
             for (scanpt=0; scanpt<1080; scanpt++) {
                 /* get data from hokuyo*/
-                depth = savedata.data[scanpt]/1000.; // data en mm, depth in meters
+                depth = savedata.data[scanpt]; // data en mm, depth in meters
 	    
-				/*If too close disregard*/
+				/*If point too close to sensor disregard*/
 				if (depth < 0.1) {
 					tooclose++;
 					continue;
@@ -507,59 +497,44 @@ void MainWindow::scanGDHE()
 				}
 				pdepth = depth;
 
-                // calculate angle in degrees
-                theta = -(135) + scanpt * (270.0/1080);
-                //theta=-theta+180;
-				
-                // calcul of angle in radians
-                thetarad = theta * M_PI/180.0;
-
-                // calculate coordonees x, y et z dans le repere sensor
-                x = cos(thetarad) * depth;
-                y = sin(thetarad) * depth;
+                // get point location relative to sensor
+                x = savedata.x_data[scanpt];
+                y = savedata.y_data[scanpt];
                 z = 0;
 				
 				/*int R[9] = {0,1,0,
 							0,0,1,
 							1,0,0};*/
-				//cheating
+				//hardcoded rotation to account for change between MTI and hokuyo reference frames
 				z = x;			
 				x = y;
 				y = z;
-							
+				
+				//rotate according to MTI attitude to get to world reference frame			
 				new_x = R11*x + R12*y + R13*z;
                 new_y = R21*x + R22*y + R23*z;
                 new_z = R31*x + R32*y + R33*z;
                 //printf("new_x=%f , new_y=%f , new_z=%f \n",new_x,new_y,new_z);
 
-				//translate
+				//translate according to position and altitude
 				new_x += lat;
                 new_y += lon;
                 new_z += alt;
 
-
 				pline_from_pos(md, new_x, new_y, new_z);
 				//pline_from_pos(md, new_x, new_y, num_scans);
-
-                savedata.angle[scanpt] = thetarad;
-				//savedata.data[scanpt] = data[scanpt];
-                savedata.x_data[scanpt] = new_x;
-                savedata.y_data[scanpt] = new_y;
             } //end forall scanpts
 			
 			//let pline_from_pos know we are done with scan line
 			pline_from_pos(mod_end, 0, 0, 0);
 			printf("pts too close: %d\n",tooclose);
 					
-            //search(savedata);
             nb_scan += NB_SCAN_INCR;
 			num_scans++;
-
             } else {
 				label1->setText("GDHE program is closed\n");
 				printf("GDHE program is closed\n");
 			}
-
     } else {
         label1->setText("Hokuyo port is closed\n");
         printf("Hokuyo port is closed\n");
