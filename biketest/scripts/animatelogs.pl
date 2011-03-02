@@ -22,7 +22,7 @@ my $cnt = 0;
 
 
 #TODO: get number of scans from directory listing
-foreach my $scncnt (1..500) {
+foreach my $scncnt (500..1000) {
 	if ($scncnt % $skipnum == 0 ){
 		$cnt++;
 		#my $cntname = sprintf "%06.2f",$scncnt;
@@ -35,5 +35,5 @@ foreach my $scncnt (1..500) {
 printf "creating animation from files\n",$#files+1;
 system COMBINE,@COMBINE_OPTIONS,@files,"gif:$path/$dirname-imgs/loganim.gif";
 printf "creating avi";
-for my $i (1..2) { `mencoder mf://$path/$dirname-imgs/*.png -mf fps=5 -ovc x264 -x264encopts qp=40:subq=7:pass=$i -o loganim264.avi`; }
-`mencoder "mf://$path/$dirname-imgs/*.png" -mf fps 5 -ovc lavc -lavcopts vcodec=mpeg4:vbitrate=1400 -ffourcc DIVX -o loganimavc.avi`;
+#for my $i (1..2) { `mencoder mf://$path/$dirname-imgs/*.png -mf fps=5 -ovc x264 -x264encopts qp=40:subq=7:pass=$i -o loganim264.avi`; }
+#`mencoder "mf://$path/$dirname-imgs/*.png" -mf fps 5 -ovc lavc -lavcopts vcodec=mpeg4:vbitrate=1400 -ffourcc DIVX -o loganimavc.avi`;

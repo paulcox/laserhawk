@@ -60,7 +60,7 @@ my $time=0;
 my $maxdist=0;
 my ($ang1,$ang2,$ang3);
 
-#grab each scanpoint and plot
+#grab each scanpoint in log and plot on image
 while (<SCNLOG>){
 	chomp;
 	if ($time != 0 ) {($ang1,$ang2,$ang3) = split(/ /,$_); last;}

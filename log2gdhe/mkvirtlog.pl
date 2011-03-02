@@ -180,13 +180,25 @@ sub getdist {
 	my $zp = $Hz;
 	my $dist = 1;
 		
-	#if the angle is less than the resolution we take height over terrain directly
-	if ($thetarad < RESRAD && $thetarad > -(RESRAD) ) { 
-		$dist = $Hy/cos($psirad)-terrain($Hx,$Hz);
-		#print "dist: $dist\n";
+	
+	if ($thetarad < RESRAD && $thetarad > -(RESRAD) ) {
+		#if the angles are less than the resolution we take height over terrain directly
+		if ($psirad < RESRAD && $psirad > -(RESRAD) ) {	 
+			$dist = $Hy/cos($psirad)-terrain($Hx,$Hz);
+		#otherwise we propagate scan in y direction until we intersect terrain
+		} else {
+			for (my $z=1; $z<=MAXTERRAIN;$z++){
+				my $y = $Hy - $z/tan($psirad);
+				if ($y < terrain(0,$z)) {					
+					$dist = distapx(0,$z);
+				}	
+				$yp = $y;		
+			}
+		}
+		print "     dist: $dist\n";
 		return $dist;
 	} else {
-		for (my $_x=1 ; $_x<=(MAXTERRAIN) ; $_x+=XINC) {	
+		for (my $_x=1 ; $_x<=MAXTERRAIN ; $_x+=XINC) {	
 			my $x;
 			if ($thetarad < 0) {
 			#if the angle is negative move away from the scanner in the -x direction
@@ -200,9 +212,9 @@ sub getdist {
 			my $z = ($y-$Hy)*tan($psirad);
 			#print "y: $y x: $x\n";
 			#if we are below the terain, the ray has intersected and we're done
-			if ($y < terrain($x,$z+$Hz)) {					
+			if ($y < terrain($x,$z)) {					
 				#return distapx($x,$z);
-				return distgeo($x,$y,$z+$Hz,$yp,$zp+$Hz);
+				return distgeo($x,$y,$z,$yp,$zp);
 			}
  			$yp = $y;
  			$zp = $z;			
@@ -260,7 +272,7 @@ sub readargs {
 		#test for a valid int for cnt
 		if ($ARGV[6] !~ /^[+-]?\ *(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?$/){print "invalid cnt\n";exit;}
 		$logenable = 1;
-		my $lognum = $ARGV[2];
+		my $lognum = $ARGV[6];
 		my $scanlogname = sprintf "scan%06d.txt",$lognum;
 		open(LOG,">$subdir/$scanlogname");
 		#we always append since the entries are timestamped and it doesn't hurt to add
@@ -360,9 +372,16 @@ sub showterrain {
 		foreach my $col (0..2*MAXTERRAIN*SCALE) {
 			foreach my $row (0..2*MAXTERRAIN*SCALE) {	
 				my $t = terrain(($col-250)/SCALE,($row-250)/SCALE);
-				my $ncol = $im2->colorAllocate(int($t+128),int($t+128),int($t+128));
-				#my $ncol = $im->colorAllocate(int($row-50)/2,int($col-50)/2,0);
-				if ($ncol == -1) {print "colorallocate failed\n";exit};
+				my $ncol;
+				if ($t==0) {
+					$ncol = $black;
+				} else {
+					$ncol = $im2->colorAllocate(int($t+128),int($t+128),int($t+128));
+					#my $ncol = $im->colorAllocate(int($row-50)/2,int($col-50)/2,0);
+					if ($ncol == -1) {print "colorallocate failed\n";exit};
+				}
+				#$im2->setPixel($col+$Hx*SCALE,$row+Hz*SCALE,$ncol);
+				#may need to apply translation her to make correspond to scan
 				$im2->setPixel($col,$row,$ncol);
 				$im2->colorDeallocate($ncol);
 			}
@@ -413,8 +432,17 @@ sub drawpt {
 sub terrain {
 	my $theight;
 	my ($xval,$zval) = @_;
-	
+
 	return 0 if (DEBUG);
+	
+	#rotate 2d
+	my $mag = sqrt($xval**2+$zval**2);
+	my $dir = atan2($zval,$xval)-$phirad;
+	$xval = cos($dir)*$mag;
+	$zval = sin($dir)*$mag;
+	#translate: if scanner moves positive, terrain moves negative
+	$xval -= $Hx;
+	$zval -= $Hz;
 	
 	if (HARDCODEDTERRAIN) {
 		if ($xval <= MAXTERRAIN && $xval >= -(MAXTERRAIN)){
@@ -426,7 +454,7 @@ sub terrain {
 				#else { print "terrain error!";$theight = 0;}
 			}
 		} else {
-			print "Warning: out of bounds: $xval\n";
+			#print "Warning: out of bounds: $xval\n";
 			$theight = 0;
 		}	
 	} else {
