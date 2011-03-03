@@ -15,3 +15,5 @@ Notes:
 Detect angle from road surface (assuming it is level)
 Detect angle from horizon in video
 
+perl mods needed:
+libstatistics-descriptive-perl
