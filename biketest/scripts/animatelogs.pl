@@ -11,7 +11,6 @@ use constant COMBINE    => '/usr/bin/convert';
 
 my $dirname = "2011-03-01-10-32-19";
 my $path = "/home/paul/Documents/LAAS/laserhawk/biketest";
-#print "image files : $path/$dirname-imgs/scan$scncnt.png\n";
 my $skipnum = 1;
 
 #gif animation parameters : flush previous image, wait 100 ms
@@ -20,14 +19,14 @@ my @COMBINE_OPTIONS = (-dispose => 'previous', -delay => 10, -loop  => 10000);
 my @files = ();
 my $cnt = 0;
 
+#require three args
+if ($#ARGV !=2) {print "Specify start and stop indexes and skip param.\nExample: ./animatelogs.pl 1 10 1\n";exit;}
 
-#TODO: get number of scans from directory listing
-foreach my $scncnt (100..300) {
-	if ($scncnt % $skipnum == 0 ){
+foreach my $scncnt ($ARGV[0]..$ARGV[1]) {
+	if ($scncnt % $ARGV[2] == 0 ){
 		$cnt++;
 		#my $cntname = sprintf "%06.2f",$scncnt;
-		print "plotting scan ($scncnt) $cnt\n";
-		`perl plotlogs.pl $dirname $scncnt`;
+		print "including scan ($scncnt) $cnt\n";
 		my $imgfile = sprintf "$path/$dirname-imgs/scan%06d.png",$scncnt;
 		push(@files,"$imgfile");
 	}
