@@ -43,8 +43,8 @@ if (! -e "$path/$dirname") {printf "please specify a valid log folder\n"; exit;}
 #`mkdir $path$dirname-imgs` if (! -e "$path/$dirname-imgs" );
 #`mkdir $path/$dirname-maps` if (! -e "$path/$dirname-maps" );
 
-my $firstlog = 1; #$ARGV[1]
-my $lastlog = 2; #$ARGV[2]
+my $firstlog = 0; #$ARGV[1]
+my $lastlog = 200; #$ARGV[2]
 my $skipnum = 1; #$ARGV[3]
 
 printf "SCALE: ".SCALE."\n";
@@ -55,11 +55,9 @@ my @deltats;
 
 my ($ang1,$ang2,$ang3);
 my ($im,$white,$black,$red,$blue,$green,$magenta,$cyan);
+my $pscntime=0;
 
 foreach my $scncnt ($firstlog..$lastlog) {
-
-
-
 	if ($scncnt % $skipnum == 0 ){	
 		print "plotting scan ($scncnt) $cnt\n";
 		my $scntime = plotlog($scncnt);
@@ -68,17 +66,19 @@ foreach my $scncnt ($firstlog..$lastlog) {
 			$time0 = $scntime;
 		} else {
 			#store deltas for running statistics (mean, min, max, stand dev)
-			$deltats[$cnt++] = ($scntime - $time0)*1000;
+			$deltats[$cnt++] = ($scntime - $pscntime)*1000;
 		}
+		$pscntime = $scntime;
 	}
 }
 
-#print deltats stats
-my $tstat = Statistics::Descriptive::Full->new();
-$tstat->add_data(@deltats); 
-printf "time deltas stats (ms) - cnt: %d min: %d max: %d mean: %d stddev: %d\n",
-		$tstat->count(),$tstat->min(),$tstat->max(),$tstat->mean(), $tstat->standard_deviation();
-		
+#print deltats stats (there won't be any if this script is run for a single which is why we test if @deltats exists
+if (@deltats){
+	my $tstat = Statistics::Descriptive::Full->new();
+	$tstat->add_data(@deltats);
+	printf "time deltas stats (ms) - cnt: %d min: %d max: %d mean: %d stddev: %d\n",
+			$tstat->count(),$tstat->min(),$tstat->max(),$tstat->mean(), $tstat->standard_deviation();
+}		
 exit;
 
 ###############################################################################
@@ -102,9 +102,26 @@ sub plotlog {
 	#grab each scanpoint in log and plot on image
 	while (<SCNLOG>){
 		chomp;
-		#angles now at start of log thanks to putangles script
-		if ($ang1 == 0 ) {($ang1,$ang2,$ang3) = split(/\s+/,$_);next;}
-		if ($cnt == 1079) {$time=$_ ; next;}
+		#mti data now at start of log thanks to putmtidata script
+		if ($ang1 == 0 ) {
+			#extract angles and position from mti data line
+			$_ =~ /^(.*).*EUL(.*)POS/;
+			#no match print error
+			if (!$1){
+				print "ERROR: didn't find angles in mti data on first line\n" ;
+				exit;
+			}
+			my $junk = $1;
+			my $other = $2;
+			$other =~ /\s+(.+)\s+(.+)\s+(.+)/;
+			$ang1=$1;$ang2=$2;$ang3=$3;			
+			#($ang1,$ang2,$ang3) = split(/\s+/,$_);
+			next;
+		}
+		if ($cnt == 1079) {
+			$time = $_;
+			next;
+		}
 		($cnt,$dist) = split(/       /,$_);
 		next if ($dist < $mindist);
 		$maxdist = $dist if ($dist>$maxdist);

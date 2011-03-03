@@ -1,14 +1,16 @@
 #!/usr/bin/perl
 ###############################################################################
-#this script inserts the MTI data corresponding to a laser scan into that scan line logfile
-#this allows the plot script to show the angles and position in the output image
+#This script inserts the MTI data corresponding to a laser scan into that scan-
+#line logfile.
+#This allows the plot script to extract whatever info it needs such as the 
+#angles and position.
 ###############################################################################
 
 #pragmas and modules
 use strict;
 use warnings;
 
-#usage: ./putangles.pl 2011-03-01-10-32-19
+#usage: ./putmtidata.pl 2011-03-01-10-32-19
 #TODO check arguments
 
 my $path = "/home/paul/Documents/LAAS/laserhawk/biketest";
@@ -41,11 +43,13 @@ foreach (@scanlist) {
 	
 	#open file for writing
 	open LOG,">$_";
-	#print angles corresponding to time in file
-	printf LOG getangles($htime)."\n";
-	#print everything except the last line (the angles)
+	#print data corresponding to time in file
+	printf LOG getdata($htime)."\n";
+	#print everything
+	my $init = 0; #skip first to remove old first line
 	for my $line (@raw_data) {
-		print LOG $line;
+		if ($init == 0) {$init=1;}else{
+		print LOG $line;}
 	}
 	#close log
 	close LOG;
@@ -61,27 +65,27 @@ sub init_mti_AoH {
 		my $rec = {};
 		#split into fields on any number of spaces and stick first four fields into variables, sweet!
 		#my ($time,$junk,$ang1,$ang2,$ang3) = split(/\s+/,$_);
-		$_ =~ /^(.*)\sACC.*EUL(.*)POS/;
+		$_ =~ /^(.*)\sACC\s+(.*)$/;
 		#ignore any comments in file by skipping to the next line if # is detected at start of line
 		next if (!$1);
 		my $time = $1;
-		my $other = $2;
+		#my $other = $2;
 		#print "time : ".$1."\n";
-		$other =~ /\s+(.+)\s+(.+)\s+(.+)/;
-		my $ang1=$1;my $ang2=$2;my $ang3=$3;
+		#$other =~ /\s+(.+)\s+(.+)\s+(.+)/;
+		#my $ang1=$1;my $ang2=$2;my $ang3=$3;
 
 		#hash value is a space delimited string of the angles
-		$rec->{$time} =  $ang1." ".$ang2." ".$ang3;
+		$rec->{$time} =  $2;
 		push @mti, $rec;
 	}
 	close MTILOG;
 }
 
-sub getangles {
+sub getdata {
 	my $hokuyotime = $_[0];
 	my $prevtime;
-	my $angles;
-	my $prevangles;
+	my $data;
+	my $prevdata;
 
 search: for my $href (@mti) {
 		for my $mtitime (keys %$href) {
@@ -93,18 +97,18 @@ search: for my $href (@mti) {
 				
 				#check which mti data line is closest to our scan time
 				if ($hokuyotime-$prevtime > $mtitime-$hokuyotime){
-					$angles = $href->{$mtitime};
+					$data = $href->{$mtitime};
 				} else {
-					$angles = $prevangles;
+					$data = $prevdata;
 				}
 				last search;
 			} else {
 				$prevtime = $mtitime;
-				$prevangles = $href->{$mtitime};
+				$prevdata = $href->{$mtitime};
 			}
 		}
 	}
-	#print "  getangles returning : ".$angles."\n";
-	return $angles;
+	#print "  getdata returning : ".$data."\n";
+	return $data;
 }
 
