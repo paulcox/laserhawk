@@ -40,11 +40,11 @@ my $dirname = "2011-03-01-10-32-19";
 #whine if no subdir
 if (! -e "$path/$dirname") {printf "please specify a valid log folder\n"; exit;}
 #create imgs dir if not already there
-#`mkdir $path$dirname-imgs` if (! -e "$path/$dirname-imgs" );
-#`mkdir $path/$dirname-maps` if (! -e "$path/$dirname-maps" );
+`mkdir $path$dirname-imgs` if (! -e "$path/$dirname-imgs" );
 
+#TODO: look for 'all' on ARGV1 and do them all if so
 my $firstlog = 0; #$ARGV[1]
-my $lastlog = 200; #$ARGV[2]
+my $lastlog = 2000; #$ARGV[2]
 my $skipnum = 1; #$ARGV[3]
 
 printf "SCALE: ".SCALE."\n";

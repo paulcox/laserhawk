@@ -28,7 +28,8 @@ my $dirname = "2011-03-01-10-32-19";
 #whine if no subdir
 if (! -e "$path/$dirname") {printf "please specify a valid log folder\n"; exit;}
 #create maps dir if not already there
-#`mkdir $path/$dirname-maps` if (! -e "$path/$dirname-maps" );
+`mkdir $path/$dirname-maps` if (! -e "$path/$dirname-maps" );
+`mkdir $path/$dirname-frames` if (! -e "$path/$dirname-frames" );
 
 my ($east,$north,$zone);
 my $middlefile;
@@ -51,8 +52,16 @@ foreach my $sec (0..$lastsec) {
 	#this sets $east,$north,$zone
 	getposition($timeinsec);
 	print "sec $sec: east $east north $north zone $zone\n";
+	for my $tenth (0..9) {
+		my $frame = sprintf "$path/$dirname-frames/frame%03d_%1d.jpg",$sec,$tenth;
+		printf "  Getting video frame $frame\n";
+		`ffmpeg  -itsoffset -$sec.$tenth -i $path/MVI_0008.AVI -vcodec mjpeg -vframes 1 -an -f rawvideo -s 250x187 $frame`;
+	}
+	
 	if (we_moved()) { 
-		fetchmap($east,$north,$zone,$center,$timeinsec);
+		#fetchmap($east,$north,$zone,$center,$timeinsec);
+		#beware google imposes an unspecified rate limit along with a max of 1000 per user per day
+		#sleep 3;
 	} else {
 		#link to previous;
 	}
@@ -129,7 +138,8 @@ sub getposition() {
 	my $mtidata = `head -1 $file`;
 
 	#grab gps data
-	$mtidata =~ /^.*POS\s+(.*)T/;
+	#$mtidata =~ /^.*POS\s+(.*)T/;
+	$mtidata =~ /^.*GPS\s+(.*)T/;
 	#split into fields
 	my @gpspos = split(/\s+/,$1);
 
@@ -163,6 +173,7 @@ sub fetchmap {
 
 	# Now to save the image to disk
 	my $mapfile = sprintf "$path/$dirname-maps/map%03d.jpg",$t;
+	print "  ".$mapfile."\n";
 	open(IMAGE, ">$mapfile") || die "$mapfile: $!";
 	print IMAGE $pic->image;
 	close IMAGE;
