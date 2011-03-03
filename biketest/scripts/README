@@ -1,0 +1,10 @@
+explain sequence of steps to go from raw scans to animation :
+
+1- Add mti data to scans with putmtidata.pl
+
+2- Get gmaps images with getmaps.pl
+
+3- Generate plots with plotlogs.pl
+
+4- Animate plots with animatelogs.pl
+
