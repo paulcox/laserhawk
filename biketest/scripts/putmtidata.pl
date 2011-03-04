@@ -1,24 +1,36 @@
 #!/usr/bin/perl
 ###############################################################################
-#This script inserts the MTI data corresponding to a laser scan into that scan-
-#line logfile.
-#This allows the plot script to extract whatever info it needs such as the 
-#angles and position.
+#Author: Paul Cox
+#Date  : Feb 2011
+#
+# putmtidata.pl : This script inserts the MTI data corresponding to a laser
+#	scan into that scanline logfile.
+#	This allows the plot script to extract whatever info it needs such as the 
+#	angles and position.
+#
+# TODO: more argument checking
 ###############################################################################
 
 #pragmas and modules
 use strict;
 use warnings;
 
-#usage: ./putmtidata.pl 2011-03-01-10-32-19
-#TODO check arguments
+#require two args
+if ($#ARGV !=1) {print "Specify scan folder name and movie name\nExample: ./putmtidata.pl 2011-03-01-10-32-19 MTI_test3.out\n";exit;}
 
-my $path = "/home/paul/Documents/LAAS/laserhawk/biketest";
-my $mtilogname = "MTI_test3.out";
-my $cnt = 0;
+#my $path = "/home/paul/Documents/LAAS/laserhawk/biketest";
+my $path = `pwd`;
+chomp $path;
+$path .= "/..";
+
+#my $cnt = 0;
 my @mti = ();
 my $dirname = $ARGV[0];
 if (!$dirname) {print "duh, you forgot to specify the name of the directory\n";exit;}
+if (! -e "$path/$dirname") {printf "please specify a valid log folder\n"; exit;}
+
+#my $mtilogname = "MTI_test3.out";
+my $mtilogname = $ARGV[1];
 
 init_mti_AoH();
 
@@ -33,6 +45,7 @@ foreach (@scanlist) {
 	my $htime = `tail -n 1 $_`;
 	chomp $htime;
 	print "last line blank\n" if (!$htime);
+	
 	#need to check if it's really a time otherwise bail
 	if ($htime < 1287161422) {print "skipping...\n";next;}
 	print "htime: $htime\n";
@@ -43,15 +56,18 @@ foreach (@scanlist) {
 	
 	#open file for writing
 	open LOG,">$_";
+	
 	#print data corresponding to time in file
 	printf LOG getdata($htime)."\n";
+	
 	#print everything
-	my $init = 0; #skip first to remove old first line
+	#my $init = 0; #skip first to remove old first line
 	for my $line (@raw_data) {
-		if ($init == 0) {$init=1;}else{
-		print LOG $line;}
+		#if ($init == 0) {$init=1;}else{
+		print LOG $line;
+		#}
 	}
-	#close log
+
 	close LOG;
 	#last;
 }

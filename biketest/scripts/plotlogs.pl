@@ -2,11 +2,18 @@
 ###############################################################################
 #Author: Paul Cox
 #Date  : Feb 2011
+#
+# plotlogs.pl : Script that uses scan logs, video frames, and google maps to 
+#	generate png images showing all relevant info.
+#
+#
+#
 #Notes
-#TODO check arguments
-#TODO detect road angle from horizon (bike lean) and corelate to MTI angle
+#TODO: check arguments in more detail
+#TODO: detect road angle from horizon (bike lean) and corelate to MTI angle
 #TODO: look for 'all' on ARGV1 and do them all if so
-#TODO: plot summary at end with use GD::Graph::lines; angles, maxdist, 
+#TODO: plot summary at end with use GD::Graph::lines; MTI raw sensors, angles,
+#		maxdist, etc.
 ###############################################################################
 
 #pragmas and modules
@@ -36,7 +43,10 @@ use constant DEBUG => 0;
 #./plotlogs.pl 2011-03-01-10-32-19 100 200 1
 if ($#ARGV !=3) {print "Specify start and stop indexes and skip param.\nExample: ./animatelogs.pl 1 10 1\n";exit;}
 
-my $path = "/home/paul/Documents/LAAS/laserhawk/biketest";
+#my $path = "/home/paul/Documents/LAAS/laserhawk/biketest";
+my $path = `pwd`;
+chomp $path;
+$path .= "/..";
 #my $dirname = "2011-03-01-10-32-19";
 my $dirname = $ARGV[0];
 #whine if no subdir
@@ -50,6 +60,8 @@ if (! -e "$path/$dirname-frames") {printf "No video frames folder found\n"; exit
 #my $lastlog = 100;
 #my $skipnum = 1;
 my $firstlog = $ARGV[1];
+#we always process first scan so if user asks to start at 0 we need to change it to 1
+$firstlog = 1 if (!$firstlog);
 my $lastlog =  $ARGV[2];
 my $skipnum = $ARGV[3];
 

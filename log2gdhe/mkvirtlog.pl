@@ -2,14 +2,15 @@
 ###############################################################################
 #Author: Paul Cox
 #Date  : Feb 2011
-#Notes
-#everything in cm
-#the terrain is defined in the x direction
-#x=0 corresponds to spot directly under the hokyo sensor
-#x is positive to the right
-#x is negative to the left
-#y is positive up
-#hokuyo scans from left to right
+# Notes:
+# - everything in cm
+# - the terrain is defined in the x direction
+# - x=0 corresponds to spot directly under the hokyo sensor
+# - x is positive to the right
+# - x is negative to the left
+# - y is positive up
+# - hokuyo scans from left to right
+#
 #  Reference Diagram:
 #                         +Y
 #                          ^
@@ -113,6 +114,7 @@ $im->arc(IMGWIDTH/2,IMGBDR+NOMTH+$Hy*SCALE,10,10,135,45,$red);
 for ($scnpt = HALFWAY-135/RESDEG ; $scnpt < HALFWAY+135/RESDEG ; $scnpt+=1) {
 #next one gives all 1081 points
 #for ($scnpt = HALFWAY-135/RESDEG ; $scnpt <= HALFWAY+135/RESDEG ; $scnpt+=1) {
+#next one can be useful for debug
 #for ($scnpt = HALFWAY-45/RESDEG ; $scnpt <= HALFWAY+45/RESDEG ; $scnpt+=2/RESDEG) {
 	$thetarad = ($scnpt - HALFWAY)*RESRAD;
 	$thetadeg = ($scnpt - HALFWAY)*RESDEG;

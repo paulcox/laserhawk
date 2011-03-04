@@ -2,12 +2,21 @@
 ###############################################################################
 #Author: Paul Cox
 #Date  : Feb 2011
-#Notes
-# use HTTP::Request;
-# use LWP::UserAgent;
-# my $request = HTTP::Request->new(GET => $url);
-# my $ua = LWP::UserAgent->new;
-# my $response = $ua->request($request);
+#
+# getmaps.pl : script to get google maps and video frames ready for plotting
+#
+# The script first looks throught the scan files to determine the start/end 
+# times (epoch), then estimates a lat/lon center for the google maps (so the 
+# map window stays constant), then grabs a google map for each second (using 
+# the position reported in the scan at the appropriate time offset)and a 
+# video frame for every tenth of a second.
+#
+# TODO:
+#	1. Implement we_moved() to remove need to generate map when we don't move
+#	2. Remove use of $scansps in getposition()
+#	3. Reimplement findcenter() to remove assumption that middle time = middle pos
+#
+# Notes :
 ###############################################################################
 
 #pragmas and modules
@@ -22,14 +31,23 @@ sub findtimes;
 sub findcenter;
 sub getposition;
 
-my $path = "/home/paul/Documents/LAAS/laserhawk/biketest";
-my $dirname = "2011-03-01-10-32-19";
-#my $dirname = $ARGV[0];
+#require two args
+if ($#ARGV !=1) {print "Specify scan folder name and movie name\nExample: ./getmaps.pl 2011-03-01-10-32-19 MVI_0009.AVI\n";exit;}
+
+#my $path = "/home/paul/Documents/LAAS/laserhawk/biketest";
+my $path = `pwd`;
+chomp $path;
+$path .= "/..";
+#my $dirname = "2011-03-01-10-32-19";
+my $dirname = $ARGV[0];
 #whine if no subdir
 if (! -e "$path/$dirname") {printf "please specify a valid log folder\n"; exit;}
 #create maps dir if not already there
 `mkdir $path/$dirname-maps` if (! -e "$path/$dirname-maps" );
 `mkdir $path/$dirname-frames` if (! -e "$path/$dirname-frames" );
+
+#my $movie = "MVI_0009.AVI";
+my $movie = $ARGV[1];
 
 my ($east,$north,$zone);
 my $middlefile;
@@ -55,13 +73,13 @@ foreach my $sec (0..$lastsec) {
 	for my $tenth (0..9) {
 		my $frame = sprintf "$path/$dirname-frames/frame%03d_%1d.jpg",$sec,$tenth;
 		printf "  Getting video frame $frame\n";
-		`ffmpeg  -itsoffset -$sec.$tenth -i $path/MVI_0009.AVI -vcodec mjpeg -vframes 1 -an -f rawvideo -s 250x187 $frame`;
+		`ffmpeg  -itsoffset -$sec.$tenth -i $path/$movie -vcodec mjpeg -vframes 1 -an -f rawvideo -s 250x187 $frame`;
 	}
 	
 	if (we_moved()) { 
-		#fetchmap($east,$north,$zone,$center,$timeinsec);
+		fetchmap($east,$north,$zone,$center,$timeinsec);
 		#beware google imposes an unspecified rate limit along with a max of 1000 per user per day
-		#sleep 3;
+		sleep 3;
 	} else {
 		#link to previous;
 	}
@@ -117,16 +135,14 @@ sub findcenter() {
 	return sprintf "%f,%f",$lat,$lon;
 }
 
-
 sub we_moved {
+#eventually have this look to see if we actually moved because if we didn't there is 
+#no need to get a new map as the old one would do fine...
 
-
-	our $peast =0;
-	our $pnorth =0;
+	our $peast = 0;
+	our $pnorth = 0;
 	
 	#return 0;
-	
-	
 	return 1;
 }
 
