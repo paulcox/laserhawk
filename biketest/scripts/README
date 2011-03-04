@@ -8,3 +8,7 @@ explain sequence of steps to go from raw scans to animation :
 
 4- Animate plots with animatelogs.pl
 
+for ivy:
+libio-socket-multicast-perl
+svn co http://svn.tls.cena.fr/svn/ivy/ivy-perl/trunk (perl Makefile.pl;make;sudo make install)
+libterm-readline-perl-perl (for ivyprobe)
