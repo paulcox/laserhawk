@@ -3,6 +3,10 @@
 #Author: Paul Cox
 #Date  : Feb 2011
 #Notes
+#TODO check arguments
+#TODO detect road angle from horizon (bike lean) and corelate to MTI angle
+#TODO: look for 'all' on ARGV1 and do them all if so
+#TODO: plot summary at end with use GD::Graph::lines; angles, maxdist, 
 ###############################################################################
 
 #pragmas and modules
@@ -26,30 +30,31 @@ use constant RESDEG => 360/1440;
 use constant RESRAD => (2*pi)/1440;
 use constant HALFWAY => 1080/2;
 use constant LASTSCAN => 1080;
+use constant DEBUG => 0;
 
 #usage
 #./plotlogs.pl 2011-03-01-10-32-19 100 200 1
-#TODO check arguments
-#TODO integrate with animatelogs and determine time between scans to show refresh rate in image
-#TODO detect road angle from horizon (bike lean)
-#google map of the track 
+if ($#ARGV !=3) {print "Specify start and stop indexes and skip param.\nExample: ./animatelogs.pl 1 10 1\n";exit;}
 
 my $path = "/home/paul/Documents/LAAS/laserhawk/biketest";
-my $dirname = "2011-03-01-10-32-19";
-#my $dirname = $ARGV[0];
+#my $dirname = "2011-03-01-10-32-19";
+my $dirname = $ARGV[0];
 #whine if no subdir
 if (! -e "$path/$dirname") {printf "please specify a valid log folder\n"; exit;}
+if (! -e "$path/$dirname-maps") {printf "No maps folder found\n"; exit;}
+if (! -e "$path/$dirname-frames") {printf "No video frames folder found\n"; exit;}
 #create imgs dir if not already there
 `mkdir $path$dirname-imgs` if (! -e "$path/$dirname-imgs" );
 
-#TODO: look for 'all' on ARGV1 and do them all if so
-my $firstlog = 0; #$ARGV[1]
-my $lastlog = 2000; #$ARGV[2]
-my $skipnum = 1; #$ARGV[3]
+#my $firstlog = 0;
+#my $lastlog = 100;
+#my $skipnum = 1;
+my $firstlog = $ARGV[1];
+my $lastlog =  $ARGV[2];
+my $skipnum = $ARGV[3];
 
 printf "SCALE: ".SCALE."\n";
 
-my $time0 = 0;
 my $cnt = 0;
 my @deltats;
 
@@ -57,23 +62,24 @@ my ($ang1,$ang2,$ang3);
 my ($im,$white,$black,$red,$blue,$green,$magenta,$cyan);
 my $pscntime=0;
 
+#issue: starting from non zero firstlog will not use correct map/frame
+#fixing by always running first scan
+my $time0 = 0;
+$time0 = plotlog(0);
+print "time of first scan: $time0\n";
+			
 foreach my $scncnt ($firstlog..$lastlog) {
 	if ($scncnt % $skipnum == 0 ){	
-		print "plotting scan ($scncnt) $cnt\n";
+		printf "scan (%03d) %03d:",$scncnt,$cnt;
 		my $scntime = plotlog($scncnt);
-		if ($time0 == 0){
-			print "time of first scan: $scntime\n";
-			$time0 = $scntime;
-		} else {
-			#store deltas for running statistics (mean, min, max, stand dev)
-			$deltats[$cnt++] = ($scntime - $pscntime)*1000;
-		}
+		#store deltas for statistics
+		$deltats[$cnt++] = ($scntime - $pscntime)*1000;
 		$pscntime = $scntime;
 	}
 }
 
 #print deltats stats (there won't be any if this script is run for a single which is why we test if @deltats exists
-if (@deltats){
+if (@deltats && 0){
 	my $tstat = Statistics::Descriptive::Full->new();
 	$tstat->add_data(@deltats);
 	printf "time deltas stats (ms) - cnt: %d min: %d max: %d mean: %d stddev: %d\n",
@@ -87,7 +93,7 @@ sub plotlog {
 	my $scncnt = $_[0];
 	my $file2open = sprintf "$path/$dirname/scan%06d.txt",$scncnt;
 
-	printf "Opening scan log : $file2open\n";
+	printf "Opening scan log : $file2open\n" if (DEBUG);
 	open SCNLOG, "<$file2open" or die $!;
 
 	initimg();
@@ -113,7 +119,8 @@ sub plotlog {
 			}
 			my $junk = $1;
 			my $other = $2;
-			$other =~ /\s+(.+)\s+(.+)\s+(.+)/;
+			#print "MTI fields :".$other."\n";
+			$other =~ /\s+(\S+)\s+(\S+)\s+(\S+)/;
 			$ang1=$1;$ang2=$2;$ang3=$3;			
 			#($ang1,$ang2,$ang3) = split(/\s+/,$_);
 			next;
@@ -131,8 +138,8 @@ sub plotlog {
 		drawpt($x,$y);
 	}
 
-	printf "total cnt: %d maxdist $maxdist time: %f\n",$cnt+1,$time-$time0;
-	printf "MTI Angles: $ang1 $ang2 $ang3\n";
+	printf " %4f maxdist: %05d ",$time-$time0,$maxdist;
+	printf "MTI Angles: $ang1, $ang2, $ang3\n";
 
 	writeimg($scncnt, $time-$time0);
 	close SCNLOG;
@@ -185,12 +192,19 @@ sub initimg {
 #write image to file
 sub writeimg {
 	my $scncnt = $_[0];
-	my $time;
-	if ( $time0 == 0 ) {
+	my ($time,$timeinsec,$tenth);
+	#shouldn't second, but first not working because time isn't zero on first for some reason
+	if ( $time0 == 0 || $time0 >10000) {
 		$time = $_[1];
+		$timeinsec = "000";
+		$tenth = 0;
 	} else {
-		$time = sprintf "%d",$_[1]*1000;
+		$time = sprintf "%d",$_[1]*1000; #ms since first
+		$timeinsec = sprintf "%03d",$_[1]; #seconds since first
+		$_[1] =~ /\.(\d)/;
+		$tenth = $1; #tenth of a second digit 
 	}
+	#print "tenth:($tenth) ->$time0\n";
 
 	$im->flipVertical();
 	#add scale bar ticks and text (now: 0..500 every 10)
@@ -227,20 +241,15 @@ sub writeimg {
 	$im->string(gdSmallFont,IMGBDR/2,IMGBDR/6,"laser scanner log plotter",$blue);
 	$im->string(gdSmallFont,IMGBDR/2,IMGBDR/2,"Paul Cox 2011 LAAS/CNRS",$blue);
 
-	my $im2 = new GD::Image(250,250,1);
-	my $timeinsec;
-	
-	if ($time0 != 0) {
-		$timeinsec = sprintf "%03d",$time/1000;
-	} else {
-		$timeinsec = "000";
-	}
-	my $mapfile = sprintf "$path/$dirname-maps/map$timeinsec.jpg";
 	#insert google map
+	my $im2 = new GD::Image(250,250,1);
+	my $mapfile = sprintf "$path/$dirname-maps/map$timeinsec.jpg";
+
 	if (-r $mapfile){
 		#open map file
-		print "Opening Map $mapfile\n";
+		print "Opening Map $mapfile\n" if (DEBUG);
 		$im2 = GD::Image->new($mapfile);
+		if (!$im2) {print "ERROR: unable to create image from file.\n";exit;}
 	} else {
 		#go get it!
 		print "ERROR: Unable to open $mapfile\n";
@@ -248,10 +257,26 @@ sub writeimg {
 	#copy map into our image
 	$im->copy($im2,IMGBDR,IMGHEIGHT/2,0,0,250,250);
 
+	my $im3 = new GD::Image(250,187,1);
+	my $framefile = sprintf "$path/$dirname-frames/frame%03d_%1d.jpg",$timeinsec,$tenth;
+
+	if (-r $framefile){
+		#open frame file
+		print "Opening Frame $framefile\n"  if (DEBUG);
+		$im3 = GD::Image->newFromJpeg($framefile,1);
+		if (!$im3) {print "ERROR: unable to create image from file.\n";exit;}
+	} else {
+		#go get it!
+		print "ERROR: Unable to open $framefile\n";
+	}
+	#copy map into our image
+	$im->copy($im3,IMGWIDTH/2,IMGHEIGHT/2,0,0,250,187);
+
+
 	my $imgfile = sprintf "$path/$dirname-imgs/scan%06d.png",$scncnt;
 	open(IMG, ">$imgfile") or die $1;
 	binmode IMG;
-	print "Writing image file : $imgfile\n";
+	print "Writing image file : $imgfile\n" if (DEBUG);
 	print IMG $im->png;
 	close(IMG);
 }
