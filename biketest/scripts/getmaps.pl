@@ -55,7 +55,7 @@ foreach my $sec (0..$lastsec) {
 	for my $tenth (0..9) {
 		my $frame = sprintf "$path/$dirname-frames/frame%03d_%1d.jpg",$sec,$tenth;
 		printf "  Getting video frame $frame\n";
-		`ffmpeg  -itsoffset -$sec.$tenth -i $path/MVI_0008.AVI -vcodec mjpeg -vframes 1 -an -f rawvideo -s 250x187 $frame`;
+		`ffmpeg  -itsoffset -$sec.$tenth -i $path/MVI_0009.AVI -vcodec mjpeg -vframes 1 -an -f rawvideo -s 250x187 $frame`;
 	}
 	
 	if (we_moved()) { 

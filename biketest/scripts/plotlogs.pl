@@ -65,12 +65,13 @@ my $pscntime=0;
 #issue: starting from non zero firstlog will not use correct map/frame
 #fixing by always running first scan
 my $time0 = 0;
-$time0 = plotlog(0);
+$pscntime = plotlog(0);
+$time0 = $pscntime;
 print "time of first scan: $time0\n";
 			
 foreach my $scncnt ($firstlog..$lastlog) {
 	if ($scncnt % $skipnum == 0 ){	
-		printf "scan (%03d) %03d:",$scncnt,$cnt;
+		printf "scan (%04d) %04d:",$scncnt,$cnt;
 		my $scntime = plotlog($scncnt);
 		#store deltas for statistics
 		$deltats[$cnt++] = ($scntime - $pscntime)*1000;
@@ -133,12 +134,15 @@ sub plotlog {
 		next if ($dist < $mindist);
 		$maxdist = $dist if ($dist>$maxdist);
 		my $theta = $cnt*RESRAD - deg2rad(135);
-		my $x = $dist*sin($theta-deg2rad($ang2))/10;
-		my $y = $dist*cos($theta-deg2rad($ang2))/10;
+		#MTI angles give crap right now so not using them
+		#my $x = $dist*sin($theta-deg2rad($ang2))/10;
+		#my $y = $dist*cos($theta-deg2rad($ang2))/10;
+		my $x = $dist*sin($theta)/10;
+		my $y = $dist*cos($theta)/10;
 		drawpt($x,$y);
 	}
 
-	printf " %4f maxdist: %05d ",$time-$time0,$maxdist;
+	printf " %6.2f maxdist: %05d ",$time-$time0,$maxdist;
 	printf "MTI Angles: $ang1, $ang2, $ang3\n";
 
 	writeimg($scncnt, $time-$time0);
@@ -193,8 +197,8 @@ sub initimg {
 sub writeimg {
 	my $scncnt = $_[0];
 	my ($time,$timeinsec,$tenth);
-	#shouldn't second, but first not working because time isn't zero on first for some reason
-	if ( $time0 == 0 || $time0 >10000) {
+
+	if ( $time0 == 0 ) {
 		$time = $_[1];
 		$timeinsec = "000";
 		$tenth = 0;
