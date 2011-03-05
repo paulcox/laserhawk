@@ -44,10 +44,10 @@ foreach (@scanlist) {
 	#grab the time off the last line
 	my $htime = `tail -n 1 $_`;
 	chomp $htime;
-	print "last line blank\n" if (!$htime);
+	if (!$htime){print "last line blank (probably last scan file)\n"; exit;}
 	
 	#need to check if it's really a time otherwise bail
-	if ($htime < 1287161422) {print "skipping...\n";next;}
+	if ($htime < 1287161422) {print "skipping...\n"; next;}
 	print "htime: $htime\n";
 	
 	open(LOG, "<$_") || die("Cannot Open File");
@@ -81,7 +81,8 @@ sub init_mti_AoH {
 		my $rec = {};
 		#split into fields on any number of spaces and stick first four fields into variables, sweet!
 		#my ($time,$junk,$ang1,$ang2,$ang3) = split(/\s+/,$_);
-		$_ =~ /^(.*)\sACC\s+(.*)$/;
+		#$_ =~ /^(.*)\sACC\s+(.*)$/;
+		$_ =~ /^(.*)\sEUL\s+(.*)$/;
 		#ignore any comments in file by skipping to the next line if # is detected at start of line
 		next if (!$1);
 		my $time = $1;

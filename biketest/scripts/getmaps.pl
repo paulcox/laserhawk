@@ -72,13 +72,14 @@ foreach my $sec (0..$lastsec) {
 	print "sec $sec: east $east north $north zone $zone\n";
 	for my $tenth (0..9) {
 		my $frame = sprintf "$path/$dirname-frames/frame%03d_%1d.jpg",$sec,$tenth;
-		printf "  Getting video frame $frame\n";
-		`ffmpeg  -itsoffset -$sec.$tenth -i $path/$movie -vcodec mjpeg -vframes 1 -an -f rawvideo -s 250x187 $frame`;
+		#printf "  Getting video frame $frame\n";
+		#`ffmpeg  -itsoffset -$sec.$tenth -i $path/$movie -vcodec mjpeg -vframes 1 -an -f rawvideo -s 250x187 $frame`;
 	}
 	
 	if (we_moved()) { 
 		fetchmap($east,$north,$zone,$center,$timeinsec);
 		#beware google imposes an unspecified rate limit along with a max of 1000 per user per day
+		#last;
 		sleep 3;
 	} else {
 		#link to previous;
@@ -126,7 +127,8 @@ sub findcenter() {
 	my $mtidata = `head -1 $middlefile`;
 
 	#grab gps data
-	$mtidata =~ /^.*POS\s+(.*)T/;
+	#$mtidata =~ /^.*POS\s+(.*)T/;
+	$mtidata =~ /^.*POS\s+(.*)\sVEL/;
 	#split into fields
 	my @gpspos = split(/\s+/,$1);
 	
@@ -155,7 +157,8 @@ sub getposition() {
 
 	#grab gps data
 	#$mtidata =~ /^.*POS\s+(.*)T/;
-	$mtidata =~ /^.*GPS\s+(.*)T/;
+	#$mtidata =~ /^.*GPS\s+(.*)T/;
+	$mtidata =~ /^.*POS\s+(.*)\sVEL/;
 	#split into fields
 	my @gpspos = split(/\s+/,$1);
 
@@ -175,7 +178,7 @@ sub fetchmap {
 	my $t = $_[4];
 
 	my ($lat,$lon) = utm_to_latlon('wgs84', $z, $e, $n);
-	print "lat/lon: $lat $lon \n";
+	print "lat/lon/zo: $lat $lon $z \n";
 
 	my $zoom = 16;
 	#maptypes can be roadmap | satellite | hybrid | terrain
@@ -191,6 +194,7 @@ sub fetchmap {
 	my $mapfile = sprintf "$path/$dirname-maps/map%03d.jpg",$t;
 	print "  ".$mapfile."\n";
 	open(IMAGE, ">$mapfile") || die "$mapfile: $!";
+	if (!$pic->image){print "ERROR: No map was grabbed\n"; exit;} 
 	print IMAGE $pic->image;
 	close IMAGE;
 }

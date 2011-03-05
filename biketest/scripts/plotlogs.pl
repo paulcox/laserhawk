@@ -54,7 +54,7 @@ if (! -e "$path/$dirname") {printf "please specify a valid log folder\n"; exit;}
 if (! -e "$path/$dirname-maps") {printf "No maps folder found\n"; exit;}
 if (! -e "$path/$dirname-frames") {printf "No video frames folder found\n"; exit;}
 #create imgs dir if not already there
-`mkdir $path$dirname-imgs` if (! -e "$path/$dirname-imgs" );
+`mkdir $path/$dirname-imgs` if (! -e "$path/$dirname-imgs" );
 
 #my $firstlog = 0;
 #my $lastlog = 100;
@@ -116,7 +116,7 @@ sub plotlog {
 	my $time = 0;
 	my $maxdist = 0;
 	my $mindist = 10; #cm
-	$ang1=0; #needs to be reset so below we know to grab it off first line
+	$ang1 = 0; #needs to be reset so below we know to grab it off first line
 	
 	#grab each scanpoint in log and plot on image
 	while (<SCNLOG>){
@@ -124,16 +124,18 @@ sub plotlog {
 		#mti data now at start of log thanks to putmtidata script
 		if ($ang1 == 0 ) {
 			#extract angles and position from mti data line
-			$_ =~ /^(.*).*EUL(.*)POS/;
+			#$_ =~ /^(.*).*EUL(.*)POS/;
 			#no match print error
-			if (!$1){
-				print "ERROR: didn't find angles in mti data on first line\n" ;
-				exit;
-			}
-			my $junk = $1;
-			my $other = $2;
+			#if (!$1){
+			#	print "ERROR: didn't find angles in mti data on first line\n" ;
+			#	exit;
+			#}
+			#my $junk = $1;
+			#my $other = $2;
+			$_ =~ /^(.*)\sPOS/;
+			my $other = $1;
 			#print "MTI fields :".$other."\n";
-			$other =~ /\s+(\S+)\s+(\S+)\s+(\S+)/;
+			$other =~ /\s*(\S+)\s+(\S+)\s+(\S+)/;
 			$ang1=$1;$ang2=$2;$ang3=$3;			
 			#($ang1,$ang2,$ang3) = split(/\s+/,$_);
 			next;
@@ -258,36 +260,36 @@ sub writeimg {
 	$im->string(gdSmallFont,IMGBDR/2,IMGBDR/2,"Paul Cox 2011 LAAS/CNRS",$blue);
 
 	#insert google map
-	my $im2 = new GD::Image(250,250,1);
 	my $mapfile = sprintf "$path/$dirname-maps/map$timeinsec.jpg";
 
 	if (-r $mapfile){
+		my $im2 = new GD::Image(250,250,1);
 		#open map file
 		print "Opening Map $mapfile\n" if (DEBUG);
 		$im2 = GD::Image->new($mapfile);
 		if (!$im2) {print "ERROR: unable to create image from file.\n";exit;}
+		#copy map into our image
+		$im->copy($im2,IMGBDR,IMGHEIGHT/2,0,0,250,250);
 	} else {
 		#go get it!
 		print "ERROR: Unable to open $mapfile\n";
 	}
-	#copy map into our image
-	$im->copy($im2,IMGBDR,IMGHEIGHT/2,0,0,250,250);
 
-	my $im3 = new GD::Image(250,187,1);
+	#insert video frame
 	my $framefile = sprintf "$path/$dirname-frames/frame%03d_%1d.jpg",$timeinsec,$tenth;
 
 	if (-r $framefile){
+		my $im3 = new GD::Image(250,187,1);
 		#open frame file
 		print "Opening Frame $framefile\n"  if (DEBUG);
 		$im3 = GD::Image->newFromJpeg($framefile,1);
 		if (!$im3) {print "ERROR: unable to create image from file.\n";exit;}
+		#copy map into our image
+		$im->copy($im3,IMGWIDTH/2,IMGHEIGHT/2,0,0,250,187);
 	} else {
 		#go get it!
-		print "ERROR: Unable to open $framefile\n";
+		#print "ERROR: Unable to open $framefile\n";
 	}
-	#copy map into our image
-	$im->copy($im3,IMGWIDTH/2,IMGHEIGHT/2,0,0,250,187);
-
 
 	my $imgfile = sprintf "$path/$dirname-imgs/scan%06d.png",$scncnt;
 	open(IMG, ">$imgfile") or die $1;
