@@ -5,6 +5,7 @@ ipks/*.ipk
 */*.o
 log2gdhe/log2gdhe
 hoku2gdhe/hoku2gdhe
+hokuyomti/log/*
 hokuyomti/hokuyomti
 log2gdhe/imgs/*
 log2gdhe/*.txt

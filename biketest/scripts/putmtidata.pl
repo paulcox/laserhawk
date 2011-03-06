@@ -16,7 +16,7 @@ use strict;
 use warnings;
 
 #require two args
-if ($#ARGV !=1) {print "Specify scan folder name and movie name\nExample: ./putmtidata.pl 2011-03-01-10-32-19 MTI_test3.out\n";exit;}
+if ($#ARGV !=1) {print "Specify scan folder name and MTI log file\nExample: ./putmtidata.pl 2011-03-01-10-32-19 MTI_test3.out\n";exit;}
 
 #my $path = "/home/paul/Documents/LAAS/laserhawk/biketest";
 my $path = `pwd`;
@@ -69,6 +69,7 @@ foreach (@scanlist) {
 	}
 
 	close LOG;
+	#for debug, this will stop the script after the first log file is processed:
 	#last;
 }
 
@@ -82,7 +83,10 @@ sub init_mti_AoH {
 		#split into fields on any number of spaces and stick first four fields into variables, sweet!
 		#my ($time,$junk,$ang1,$ang2,$ang3) = split(/\s+/,$_);
 		#$_ =~ /^(.*)\sACC\s+(.*)$/;
-		$_ =~ /^(.*)\sEUL\s+(.*)$/;
+		#For MTIHardTest output in Euler angles
+		#$_ =~ /^(.*)\sEUL\s+(.*)$/;
+		#For MTIHardTest output in Quaternions
+		$_ =~ /^(.*)\sQUAT\s+(.*)$/;
 		#ignore any comments in file by skipping to the next line if # is detected at start of line
 		next if (!$1);
 		my $time = $1;
