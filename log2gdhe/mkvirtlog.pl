@@ -32,7 +32,7 @@ use warnings;
 use Math::Trig; #for sin/cos/etc
 use GD; #to draw
 use Switch;
-use Math::Quaternion;
+#use Math::Quaternion;
 use Time::HiRes qw(gettimeofday);
 
 #constants
@@ -158,10 +158,17 @@ if ($logenable) {
 	close LOG;
 
 	#1297965927.462918758 QUAT  0.072093  0.746111  0.661814 -0.011095 POS 377098.986 4824479.869    200.101  31T VEL   -0.0100    0.0200    0.0100
-	my $q = Math::Quaternion::rotation($psirad,1,0,0);
-	my $qtheta = $q->rotation_angle;
-	my @v = $q->rotation_axis;
-	my $mtiline = sprintf "%f QUAT  %f  %f  %f %f POS 0 0    %f  31T VEL   0    0    0\n",$timeofday,$qtheta,$v[0],$v[1],$v[2],$Hy/100;
+	#my $q = Math::Quaternion::rotation($psirad,1,0,0);
+	#my $qtheta = $q->rotation_angle;
+	#my @v = $q->rotation_axis;
+	#my $mtiline = sprintf "%f QUAT  %f  %f  %f %f POS 0 0    %f  31T VEL   0    0    0\n",$timeofday,$qtheta,$v[0],$v[1],$v[2],$Hy/100;
+#need to include use of phi angle here...
+	my $q0 = cos($phirad/2);
+	my @v = (0,0,1);
+	my $q1 = sin($phirad/2)*$v[0];
+	my $q2 = sin($phirad/2)*$v[1];
+	my $q3 = sin($phirad/2)*$v[2];
+	my $mtiline = sprintf "%f QUAT  %f  %f  %f %f POS %f %f    %f  31T VEL   0    0    0\n",$timeofday,$q0,$q1,$q2,$q3,$Hy/100,$Hx/100,$Hz/100;
 	#print $mtiline;
 	printf MTI $mtiline;
 	close MTI;
@@ -349,7 +356,8 @@ sub writeimg {
 	$im->stringUp(gdSmallFont,IMGWIDTH-(IMGBDR),IMGHEIGHT-(NOMTHZ)-(IMGBDR)-8,"-> -z",$green);
 
 	my $psiname = sprintf "%06.2f",$psideg;
-	my $imgname = $psiname."_$Hy"."_$Hx"."_$Hz";
+	my $phiname = sprintf "%06.2f",$phideg;
+	my $imgname = $psiname."_".$phiname."_$Hy"."_$Hx"."_$Hz";
 	open(IMG, ">$subdir/imgs/terrain$imgname.png") or die $1;
 	binmode IMG;
 	print "Writing image file : $subdir/imgs/terrain$imgname.png\n";

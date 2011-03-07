@@ -55,6 +55,7 @@ MAYBE TODO:
 - Detect angle from horizon in video
 
 PREREQUISITES
+-------------
 
 - Perl 
 - certain perl modules (see list below)
@@ -63,6 +64,7 @@ PREREQUISITES
 
 
 perl modules needed to run scripts:
+-----------------------------------
 
 PERL NAME			UBUNTU NAME or link
 --------------------------	------------------------------
@@ -71,3 +73,39 @@ Math::Trig
 GD				libgd-gd2-perl
 Geo::Coordinates::UTM		libgeo-coordinates-utm-perl
 Image::Grab			http://search.cpan.org/dist/Image-Grab/lib/Image/Grab.pod
+
+
+Fedora installation Notes:
+--------------------------
+
+sudo yum install perl-GD
+sudo yum install perl-Statistics-Descriptive.noarch 
+sudo yum install perl-XML-TreeBuilder.noarch
+sudo yum install ffmpeg
+
+CPAN address for downloading packages :
+---------------------------------------
+
+http://search.cpan.org/CPAN/authors/id/M/MA/MAHEX/Image-Grab-1.4.2.tar.gz
+http://search.cpan.org/CPAN/authors/id/R/RG/RGARCIA/Switch-2.16.tar.gz
+
+cd perl_mods/
+tar zxf Image-Grab-1.4.2.tar.gz
+tar zxf Geo-Coordinates-UTM-0.09.tar.gz
+tar zxf Switch-2.16.tar.gz
+cd Geo-Coordinates-UTM-0.09
+perl Makefile.PL
+make
+sudo make install
+cd ../Image-Grab-1.4.2
+perl Makefile.PL
+make
+sudo make install
+cd ../Switch-2.16
+perl Makefile.PL
+make
+sudo make install
+
+
+
+
