@@ -41,7 +41,7 @@ use constant DEBUG => 0;
 
 #usage
 #./plotlogs.pl 2011-03-01-10-32-19 100 200 1
-if ($#ARGV !=3) {print "Specify start and stop indexes and skip param.\nExample: ./animatelogs.pl 1 10 1\n";exit;}
+if ($#ARGV !=3) {print "Specify start and stop indexes and skip param.\nExample: ./plotlogs.pl 1 10 1\n";exit;}
 
 #my $path = "/home/paul/Documents/LAAS/laserhawk/biketest";
 my $path = `pwd`;
