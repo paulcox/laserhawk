@@ -12,6 +12,7 @@
 # video frame for every tenth of a second.
 #
 # TODO:
+#	0. Add video time offset (since first video frame doesn't correspond to first scan...)
 #	1. Implement we_moved() to remove need to generate map when we don't move
 #	2. Remove use of $scansps in getposition()
 #	3. Reimplement findcenter() to remove assumption that middle time = middle pos

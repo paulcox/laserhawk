@@ -15,6 +15,9 @@
 use strict;
 use warnings;
 
+#use constant ANGLETYPE => 'EUL';
+use constant ANGLETYPE => 'QUAT';
+
 #require two args
 if ($#ARGV !=1) {print "Specify scan folder name and MTI log file\nExample: ./putmtidata.pl 2011-03-01-10-32-19 MTI_test3.out\n";exit;}
 
@@ -23,7 +26,7 @@ my $path = `pwd`;
 chomp $path;
 $path .= "/..";
 
-#my $cnt = 0;
+my $cnt = 0;
 my @mti = ();
 my $dirname = $ARGV[0];
 if (!$dirname) {print "duh, you forgot to specify the name of the directory\n";exit;}
@@ -39,12 +42,12 @@ my @scanlist = <$path/$dirname/scan*.txt>;
 #loop for each scan logfile in directory
 foreach (@scanlist) {
 	#for debug stop after certain number
-	#last if ($cnt++ == 11);
+	#last if ($cnt++ == 226);
 	print "file: $_\n";
 	#grab the time off the last line
 	my $htime = `tail -n 1 $_`;
 	chomp $htime;
-	if (!$htime){print "last line blank (probably last scan file)\n"; exit;}
+	if (!$htime){print "last line blank (probably last scan file)\n I suggest you do a: rm $_\n"; exit;}
 	
 	#need to check if it's really a time otherwise bail
 	if ($htime < 1287161422) {print "skipping...\n"; next;}
@@ -80,23 +83,44 @@ sub init_mti_AoH {
 	#load MTI loginfo in array of hashes
 	while (<MTILOG>) {
 		my $rec = {};
-		#split into fields on any number of spaces and stick first four fields into variables, sweet!
-		#my ($time,$junk,$ang1,$ang2,$ang3) = split(/\s+/,$_);
-		#$_ =~ /^(.*)\sACC\s+(.*)$/;
-		#For MTIHardTest output in Euler angles
-		#$_ =~ /^(.*)\sEUL\s+(.*)$/;
-		#For MTIHardTest output in Quaternions
-		$_ =~ /^(.*)\sQUAT\s+(.*)$/;
-		#ignore any comments in file by skipping to the next line if # is detected at start of line
-		next if (!$1);
-		my $time = $1;
-		#my $other = $2;
-		#print "time : ".$1."\n";
-		#$other =~ /\s+(.+)\s+(.+)\s+(.+)/;
-		#my $ang1=$1;my $ang2=$2;my $ang3=$3;
+		my $time;
 
-		#hash value is a space delimited string of the angles
-		$rec->{$time} =  $2;
+		#$_ =~ /^(.*)\sACC\s+(.*)$/;
+		
+		if (ANGLETYPE eq 'EUL'){
+			#For MTIHardTest output in Euler angles
+			$_ =~ /^(.*)\sEUL\s+(.*)$/;
+			if ($1){
+				$time = $1;
+				#hash value is the mti data
+				$rec->{$time} = $2;
+			}
+		} else { if (ANGLETYPE eq 'QUAT') {
+			#For MTIHardTest output in Quaternions
+			$_ =~ /^(.*)\sQUAT\s+(.*)$/;
+			if ($1){
+				$time = $1;
+				#hash value is the mti data
+				$rec->{$time} = $2;
+			}
+		} else {
+			printf "Unknown angle type". ANGLETYPE ."\n";
+			exit;
+		}}
+		
+		#Handle no-match
+		if (!$time) {
+			#ignore any comments in file by skipping to the next line if # is detected at start of line
+			if ($_ =~ m/^#/){
+				print "ignoring comment\n";
+				next;
+			} else {
+				print "ERROR: Didn't find ". ANGLETYPE ." in log line\n.";
+				exit;
+			}
+
+		}
+
 		push @mti, $rec;
 	}
 	close MTILOG;
