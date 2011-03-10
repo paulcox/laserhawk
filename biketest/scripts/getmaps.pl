@@ -27,6 +27,8 @@ use Geo::Coordinates::UTM;
 use Image::Grab;
 
 use constant GOOGURL => "http://maps.google.com/maps/api/staticmap";
+use constant GETMAPS => 0;
+use constant GETFRAMES => 1;
 
 sub findtimes;
 sub findcenter;
@@ -71,13 +73,14 @@ foreach my $sec (0..$lastsec) {
 	#this sets $east,$north,$zone
 	getposition($timeinsec);
 	print "sec $sec: east $east north $north zone $zone\n";
+	if (GETFRAMES) {
 	for my $tenth (0..9) {
 		my $frame = sprintf "$path/$dirname-frames/frame%03d_%1d.jpg",$sec,$tenth;
-		#printf "  Getting video frame $frame\n";
-		#`ffmpeg  -itsoffset -$sec.$tenth -i $path/$movie -vcodec mjpeg -vframes 1 -an -f rawvideo -s 250x187 $frame`;
-	}
+		printf "  Getting video frame $frame\n";
+		`ffmpeg  -itsoffset -$sec.$tenth -i $path/$movie -vcodec mjpeg -vframes 1 -an -f rawvideo -s 250x187 $frame`;
+	}}
 	
-	if (we_moved()) { 
+	if (we_moved() and GETMAPS) { 
 		fetchmap($east,$north,$zone,$center,$timeinsec);
 		#beware google imposes an unspecified rate limit along with a max of 1000 per user per day
 		#last;
