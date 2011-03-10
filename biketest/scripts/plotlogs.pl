@@ -38,6 +38,7 @@ use constant RESRAD => (2*pi)/1440;
 use constant HALFWAY => 1080/2;
 use constant LASTSCAN => 1080;
 use constant DEBUG => 0;
+use constant VIDOFFSET => 9.1;
 
 #usage
 #./plotlogs.pl 2011-03-01-10-32-19 100 200 1
@@ -147,10 +148,9 @@ sub plotlog {
 		($cnt,$dist) = split(/       /,$_);
 		next if ($dist < $mindist);
 		$maxdist = $dist if ($dist>$maxdist);
-		my $theta = $cnt*RESRAD - deg2rad(135);
-		#MTI angles give crap right now so not using them
-		#my $x = $dist*sin($theta-deg2rad($ang2))/10;
-		#my $y = $dist*cos($theta-deg2rad($ang2))/10;
+
+		#my $theta = $cnt*RESRAD - deg2rad(135);
+		my $theta = $cnt*RESRAD - deg2rad(135) + deg2rad($ang1);
 		my $x = $dist*sin($theta)/10;
 		my $y = $dist*cos($theta)/10;
 		drawpt($x,$y);
@@ -210,17 +210,25 @@ sub initimg {
 #write image to file
 sub writeimg {
 	my $scncnt = $_[0];
-	my ($time,$timeinsec,$tenth);
+	my ($time,$timeinsec,$tenth,$vidtime);
 
 	if ( $time0 == 0 ) {
 		$time = $_[1];
 		$timeinsec = "000";
+		$vidtime = 0;
 		$tenth = 0;
 	} else {
 		$time = sprintf "%d",$_[1]*1000; #ms since first
 		$timeinsec = sprintf "%03d",$_[1]; #seconds since first
-		$_[1] =~ /\.(\d)/;
-		$tenth = $1; #tenth of a second digit 
+		$vidtime = $_[1]-VIDOFFSET;
+		if ($vidtime < 0){
+			$vidtime = 0;
+			$tenth = 0;
+		} else {
+			$vidtime =~ /\.(\d)/;
+			$tenth = $1; #tenth of a second digit
+			$vidtime = sprintf "%03d",$vidtime;
+		}
 	}
 	#print "tenth:($tenth) ->$time0\n";
 
@@ -275,8 +283,11 @@ sub writeimg {
 		print "ERROR: Unable to open $mapfile\n";
 	}
 
+	my $thetime = sprintf "", $timeinsec, $tenth;
+
+
 	#insert video frame
-	my $framefile = sprintf "$path/$dirname-frames/frame%03d_%1d.jpg",$timeinsec,$tenth;
+	my $framefile = sprintf "$path/$dirname-frames/frame%03d_%1d.jpg", $vidtime, $tenth;
 
 	if (-r $framefile){
 		my $im3 = new GD::Image(250,187,1);
