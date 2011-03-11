@@ -31,6 +31,7 @@ use constant IMGBDR => 50;
 #nominal terrain height
 use constant NOMTH => (IMGHEIGHT)/2;
 use constant MAXTERRAIN => 1500; #1500cm = 15 m
+#use constant MAXTERRAIN => 3000;
 use constant SCALE => (IMGHEIGHT-2*IMGBDR)/(2*MAXTERRAIN);
 #hokuyo constants
 use constant RESDEG => 360/1440;
@@ -39,6 +40,7 @@ use constant HALFWAY => 1080/2;
 use constant LASTSCAN => 1080;
 use constant DEBUG => 0;
 use constant VIDOFFSET => 9.1;
+use constant SHOWSTATS => 1;
 
 #usage
 #./plotlogs.pl 2011-03-01-10-32-19 100 200 1
@@ -68,8 +70,9 @@ my $skipnum = $ARGV[3];
 
 printf "SCALE: ".SCALE."\n";
 
-my $cnt = 0;
+my $gcnt = 0;
 my @deltats;
+my @maxdists;
 
 my ($ang1,$ang2,$ang3);
 my ($im,$white,$black,$red,$blue,$green,$magenta,$cyan);
@@ -84,21 +87,28 @@ print "time of first scan: $time0\n";
 			
 foreach my $scncnt ($firstlog..$lastlog) {
 	if ($scncnt % $skipnum == 0 ){	
-		printf "scan (%04d) %04d:",$scncnt,$cnt;
+		printf "scan (%04d) %04d:",$scncnt,$gcnt;
 		my $scntime = plotlog($scncnt);
 		#store deltas for statistics
-		$deltats[$cnt++] = ($scntime - $pscntime)*1000;
+		$deltats[$gcnt++] = ($scntime - $pscntime)*1000;
 		$pscntime = $scntime;
 	}
 }
 
 #print deltats stats (there won't be any if this script is run for a single which is why we test if @deltats exists
-if (@deltats && 0){
+if (@deltats and SHOWSTATS){
 	my $tstat = Statistics::Descriptive::Full->new();
 	$tstat->add_data(@deltats);
 	printf "time deltas stats (ms) - cnt: %d min: %d max: %d mean: %d stddev: %d\n",
 			$tstat->count(),$tstat->min(),$tstat->max(),$tstat->mean(), $tstat->standard_deviation();
-}		
+}
+if (@maxdists and SHOWSTATS){
+	my $tstat = Statistics::Descriptive::Full->new();
+	$tstat->add_data(@maxdists);
+	printf "max distance stats (mm) - cnt: %d min: %d max: %d mean: %d stddev: %d\n",
+			$tstat->count(),$tstat->min(),$tstat->max(),$tstat->mean(), $tstat->standard_deviation();
+}
+		
 exit;
 
 ###############################################################################
@@ -112,7 +122,7 @@ sub plotlog {
 
 	initimg();
 
-	my $cnt = 0;
+	my $lcnt = 0;
 	my $dist = 0;
 	my $time = 0;
 	my $maxdist = 0;
@@ -141,21 +151,21 @@ sub plotlog {
 			#($ang1,$ang2,$ang3) = split(/\s+/,$_);
 			next;
 		}
-		if ($cnt == 1079) {
+		if ($lcnt == 1079) {
 			$time = $_;
 			next;
 		}
-		($cnt,$dist) = split(/       /,$_);
+		($lcnt,$dist) = split(/       /,$_);
 		next if ($dist < $mindist);
 		$maxdist = $dist if ($dist>$maxdist);
 
-		#my $theta = $cnt*RESRAD - deg2rad(135);
-		my $theta = $cnt*RESRAD - deg2rad(135) + deg2rad($ang1);
+		#my $theta = $lcnt*RESRAD - deg2rad(135);
+		my $theta = $lcnt*RESRAD - deg2rad(135) + deg2rad($ang1);
 		my $x = $dist*sin($theta)/10;
 		my $y = $dist*cos($theta)/10;
 		drawpt($x,$y);
 	}
-
+	$maxdists[$gcnt] = $maxdist;
 	printf " %6.2f maxdist: %05d ",$time-$time0,$maxdist;
 	printf "MTI Angles: $ang1, $ang2, $ang3\n";
 
@@ -220,7 +230,7 @@ sub writeimg {
 	} else {
 		$time = sprintf "%d",$_[1]*1000; #ms since first
 		$timeinsec = sprintf "%03d",$_[1]; #seconds since first
-		$vidtime = $_[1]-VIDOFFSET;
+		$vidtime = $_[1]-(VIDOFFSET);
 		if ($vidtime < 0){
 			$vidtime = 0;
 			$tenth = 0;
