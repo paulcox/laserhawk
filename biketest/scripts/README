@@ -1,0 +1,6 @@
+Dev notes:
+
+for ivy:
+libio-socket-multicast-perl
+svn co http://svn.tls.cena.fr/svn/ivy/ivy-perl/trunk (perl Makefile.pl;make;sudo make install)
+libterm-readline-perl-perl (for ivyprobe)

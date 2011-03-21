@@ -93,7 +93,7 @@ CHokuyoProcess *HokuyoProcess ;
     char commandline[1000];
     char dateline[1000];
     static  char BasenameLog[1000];
-       char BasenameInit[1000]       ="/home/paul/Documents/LAAS/from_bertrand/qtcreator_projs/hokuyomti/log/";
+       char BasenameInit[1000]       ="/home/paul/Documents/LAAS/laserhawk/hokuyomti/log/";
 
     time_t t;
     time(&t);
