@@ -1,0 +1,15 @@
+####log2ghde****
+Bertrand was here!!!!
+
+
+log2gdhe is a program that reads hokuyo scan logs created by the hokuyomti
+application, and displays the corresponding polylines in gdhe. An MTIG log is 
+read to obtain attitude and position info and the timestamps of scan/pose are
+used to get the closest match.
+
+####mkvirtlog.pl####
+
+mkvirtlog.pl is a program that creates virtual laser scan logs from a 2D terrain
+model. A 2D cross-section of the scene is rendered as png and the log output to file.
+
+To run mkvirtlog.pl you need to install the perl GD module : "sudo apt-get install libgd-gd2-perl"
