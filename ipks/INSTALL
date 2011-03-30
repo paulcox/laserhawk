@@ -1,0 +1,26 @@
+# To compile laserhawk targets that depend on the flexiport, hokyuyo, etc we'll need to make the
+# overo libraries available to our cross compiler. These commands should let you do this : 
+
+#extract ipks
+tar xf openrobots_oe.tar.gz
+
+cd openrobots_oe
+
+#extract libraries from ipks
+
+ar x gbx-hokuyo-aist_9.11-r0.6_armv7a.ipk 
+tar xf data.tar.gz 
+cp ./usr/lib/gearbox/libhokuyo_aist.so.1.0.0 ..
+
+ar x gbx-flexiport_9.11-r1.6_armv7a.ipk
+tar xf data.tar.gz 
+cp ./usr/lib/gearbox/libflexiport.so.1.0.0 ..
+
+#create sym links
+
+ln -s libflexiport.so.1.0.0 libflexiport.so
+ln -s libhokuyo_aist.so.1.0.0 libhokuyo_aist.so
+
+#put the libraries and links in the paparazzi omap area
+sudo cp lib* /opt/paparazzi/omap/overo-oe/tmp/sysroots/armv7a-angstrom-linux-gnueabi/usr/lib/
+
