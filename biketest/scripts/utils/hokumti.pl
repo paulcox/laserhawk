@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #uses MTIHardTest and getrange executables to generate periodic summary and write logs
-#execute with 'perl hokumti.pl'
+#execute with 'perl hokumti.pl' or to write logs to test1 log dir 'perl hokumti.pl test1'
 
 use strict;
 use IO::Handle;
@@ -10,13 +10,15 @@ use threads::shared;
 
 my $usemti = 1;
 my $usexbee = 1;
-my $writelogs :shared = 1;
+my $writelog :shared = 0;
+$writelog = 1 if ($#ARGV+1 == 1);
 
 my $hokuyodev = '/dev/ttyACM0';
 my $mtidev = '/dev/ttyUSB0';
 my $xbeedev = '/dev/ttyUSB1';
 
 my $time;
+my $ptime;
 my $time0 = 0;
 my $sps = 0;
 my $sec = 0;
@@ -38,6 +40,16 @@ if ($usexbee) {
 my $mtiline :shared;
 my $mtithr;
 
+my $subdir;
+my $logcnt = 0;
+
+if ($writelog) {
+	$subdir = $ARGV[0];
+	if (!$subdir) {printf "please specify a subdirectory name\n"; exit;}
+	`mkdir $subdir` if (! -e $subdir);
+	print "Files will be placed in $subdir directory\n";
+}
+
 if ($usemti) {
 	$mtithr = threads->create(\&mtithread);
 }
@@ -47,6 +59,18 @@ open GETRANGE, "./getrange.elf $hokuyodev $startang $endang 1 |" or die "Couldn'
 while (<GETRANGE>){
 	#print $_;
 	if (/^START(.*?)$/) {
+		if ($writelog) {
+			if (-e LOG) {
+				print LOG $ptime;
+				close LOG;
+				$logcnt++;
+			}
+			my $scanlogname = sprintf "scan%06d.txt",$logcnt;
+			open(LOG, ">$subdir/$scanlogname") or die $1;
+			print LOG $mtiline;
+			$ptime = $1;
+		}
+		
 		if (!$time0){
 			$time0 = $1; $time = $time0; #print "first hokuyo time detected $time0\n";
 		} else {
@@ -65,6 +89,7 @@ while (<GETRANGE>){
 			$cnt++;
 			chomp $_;
 			my $dist = $_;
+			printf LOG "%04d       %d\n", $cnt, $dist if ($writelog);
 			#printf "$dist\n";
 			$maxdist = $dist if ($dist > $maxdist);
 		}
