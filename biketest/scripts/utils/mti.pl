@@ -1,12 +1,15 @@
 #!/usr/bin/perl
-#filters MTIHardTest output to show only Euler Angles
-#Use as follows with MTIG:
-# MTIHardTest /dev/ttyUSB0 -o 2 -d 6 -v | perl mti.pl
+# filters MTIHardTest output to show only Euler Angles and GPS
+# output to stdout and serial port
+# Use as follows with MTIG:
+#  MTIHardTest /dev/ttyUSB0 -o 2 -d 6 -v | perl mti.pl
 
 use IO::Handle;
 use POSIX qw(:termios_h);
+use strict;
 
 my $time0 = 0;
+my $time;
 my $cnt = 0;
 my $term = POSIX::Termios->new;
 my $fh;
@@ -20,7 +23,7 @@ while (<>){
 	if ($time0){
 		$time = $1 - $time0;
 	} else {
-		$time0 = $1;
+		$time0 = $1; $time = $time0;
 	}
 	$2 =~ /\s+(.+)\s+(.+)\s+(.+)/;
 	next if ($cnt%50);	
@@ -54,7 +57,10 @@ sub init_serial {
 	$term->setcflag( $term->getcflag &
 		( POSIX::CSIZE | POSIX::CS8 & ~POSIX::PARENB));
 
-	$term->setospeed(POSIX::B115200);
-	$term->setispeed(POSIX::B115200);
+	#$term->setospeed(POSIX::B38400);
+	#$term->setispeed(POSIX::B38400);
+	$term->setospeed(0010002);
+	$term->setispeed(0010002);
+	
 	$term->setattr(fileno($fh), POSIX::TCSANOW) or die $!;
 }
