@@ -1,0 +1,131 @@
+\documentclass[a4paper,11pt]{report}
+\usepackage[utf8x]{inputenc}
+
+% Title Page
+\title{UAV Laser Scanner Based Traversability Map Generation}
+\author{Paul D. Cox}
+
+\begin{document}
+\maketitle
+
+\section{Project Background and Motivation}
+
+The RIS group of the LAAS operates a number of robots who serve as testbeds for algorithm development and research. These indoor and outdoor robots are generic platforms that are adapted for various tasks or needs. For example, xxx is equipped with a plethora of vision sensors, while xxx is outfit with a manipulator, and xxx is capable of high-speed travel. The group is interested in complementing its ground-based fleet with airborne vehicles. The intent is to research coorperative schenarios where the airborne vehicles provide a sensing advantage due to their unique perspective and mobility.
+
+\subsection{LAAS UGVs}
+
+They have robots.
+
+\subsection{LAAS UAVs}
+
+Among others, there have been two fixed-wing aircraft, Nirvana and Manta. The nirvana aircrafts were used for cooperative tasks \ref{gautier} and not equipped with a sensing payload. Manta, a flying wing with a payload based on commodity X86 hardware was abandoned due to it's less than convenient size and EMI issues. These UAVs reuse the autopilot and groundstation software and hardware from ENAC's open-source UAV system named paparazzi \ref{paparazzi}.
+
+\subsection{ELROB competition}
+
+The European Land Robot (ELROB) competition is held yearly in Belgium, and the theme alternates every year between military and civilian. For the 2011 event, the competition is divided into four scenarios, namely: Reconnaissance and surveillance, Transport, Camp security, and Autonomous navigation. For the 2011 Elrob competition, the use of a scanning laser range finder \ref{Hokuyo} along with a commercially available foam airframe \ref{Mentor} is envisioned.
+
+\section{Acquisition Methodology}
+
+The platform selected by the group is a low power embedded system system based on the Texas Instrument OMAP3 processor \ref{OMAP}. The Gumstix Overo module \ref{Overo} provides the capacity to run the Linux operating system with minimal space and power considerations. The sensors selected include the Hokuyo UTM-30LX \ref{Hokuyo}, a scanning laser range finder and an inertial navigation system, the XSens MTIG \ref{MTIG}.
+
+\subsection{Autopilot System}
+
+Paparazzi is an autopilot system based on C-code running on an airborne ARM microcontroller and Ocaml ground-station code running on a standard Linux PC or laptop. The system allows for extensive customization and extensions. For example, the flight plan mechanism allows the creation of complex trajectories based on waypoints and conditions. The system also incorporates various simulation capabilities that are useful in initial testing of new code and configurations. Ground to air communications are typically achieved with low-bandwidth serial modems, support multiple simultaneous aircraft and ground stations, and use a software bus model that makes the creation and insertion of additional software agents into the system straightforward. 
+
+Paparazzi supports fixed-wing and rotating-wing aircraft. There is much recent use on quadrotor platforms, especially the Asctec airframe, but helicopter use has so far been very limited. Users of the fixed-wing configuration typically use small foam airframes such as the ones manufactured by RC Manufacturer Mutliplex, brushless electric motors, and the windspans remain below 1.5m. But sometimes these are much larger (or even much smaller) and more complex. They might incorporate fiberglass or carbon airframes for extended runtime \ref{murat} or range \ref{corsica}, or a gas turbine to achieve higher velocities \ref{silas}, or larger wing areas and increased payload capacity. Essentially, the PID algorithms are such that just about any standard craft can be controlled,
+
+In the most basic and most widely used fixed-wing configuration, the autopilot uses GPS and IR sensors for attitude and navigational control. Due to some of the drawbacks of these sensors, support for replacement or complimentary sensors exists and is continuously explored. This includes the use of static and dynamic pressure sensing (to allow the aircraft to respect air-speed or altitude bounds or setpoints, for example), the use of inertial measurement units (to eliminate the need for a minimum ground/sky IR contrast, for example), and the use of a magnetometer to obtain a measure of the aircraft's heading. To maintain an accurate state estimate with smaller craft capable of high roll rates, the bandwidth-limited IR sensors are complemented with a roll gyro. This is typcially a low-cost MEMS sensor, of the likes from Analog Devices, and interfaced via the autopilot's extra digital interfaces or sampled by an ADC channel.
+
+The current autopilot hardware is the Tiny2.1, a xx-gram board with a LPC2148 microcontroller, a U-blox GPS receiver module and antenna, and small Molex Picoblade connectors for interfacing with the following devices :
+
+UART-based modem
+PPM-based RC receiver input
+PWM-based RC servo outputs
+USB for programming by PC Host
+ADC inputs to sample IR sensors and monitor batteries
+I2C and SPI interfaces for additional communication, sensor, or actuator options
+
+\subsubsection{Paparazzi tradeoffs}
+
+A typical useful hardware and software system must wrestle with the complexity tradeoff. Either designs follow the KISS principle, and favor lightweight and easy to master architectures, or they aim to deliver a high degree of modularity and configurability to enable extensibility, continous reuse and evolution. Paparazzi adopts the KISS principle for hardware designs, choosing to use COTS modules and skipping any redundancy, subscribing to the idea that a simple, straightforward, clean, and well-documented design can be relatively robust and enables a larger community (for many, a hobby activity). The software side is very different because extensibility and configurability were goals from the outset and development has continously evolved without any milestones or official releases. This has resulte in a complex and sparsely documented code base that can seem unwieldly to anyone except a dedicated developer with the proper amount of pre-requisite competencies.
+
+Like all active complex configurable systems, the challenge with paparazzi is its steep learning curve and rapid and continuous evolution. Tayloring the system for a specific application is typically not difficult because paparazzi requires extensive modifications. Instead, it is difficult because much of the system has to be mastered before a clear picture of how and where the modifications should be made. Since documentation is limited to unstructured wiki pages and due to a complete lack in code comments, a user is essentially forced to be a developer and a developer is forced to dive deep into the system or resort to hacks to limit the time invested. Beyond the obvious drawbacks of the later option, is the facts are only useful for the very short-term. Since the hacks will not be able to be merged with the software base, as the base evolves the hacks will continuusly break and require constant effort to keep them working. This pressure is the reason why many users have forked the paparazzi code, added their extensive application-specific modifications without staying up to date, to end up with a system that is nearly unmergeable with the evolved paparazzi code base. The bottom-line is that tayloring paparazzi for a project should be approached in one of two ways depending on the objectives. One, if the intent is to produce a one-off demo and future reuse is not a consideration, a fork can be considered along with quick hacks. If the continuous evolution of the application is envisioned or if sharing the capabilities with other paparazzi users is desired, the time to properly integrate customizations and continously maintain them needs to be anticipated and allocated.
+
+All this to say that considerable time is required integrate paparazzi in this project and that new team members will not able to constribute for the few months it will take to get to know the system.
+
+\subsection{Compute Payload}
+
+The central component of the payload is the Gumstix Overo ARM processor board. This TI OMAP System On Chip (SOC) processor incorportes a 600MHz 32-bit ARM core, a DSP, and many peripherals including UART, I2C, SPI, SD, USB, wifi, bluetooth, and a dedicated camera interface. While the camera interface and the DSP provide for future research, for this project the important interface is USB Host as this will be used to receive laser scanner telemetry from the Hokuyo device along with other serial-based communications (MTIG and ground communication.
+
+The OMAP processor runs a full Linux operating system, cross compiled on a standard Linux host using a compilation system called OpenEmbedded. OE is capable of generating the necessary bootloader, linux kernel and modules, along with a root file system populated with all of the libraries and applications that might be needed to run our payload code. Configuration is done using bitbake recipes. With assistance from LAAS developers, bitbake recipes were created for the hokuyo and MTIG device libraries and are now available for the OMAP.
+
+\subsection{Description of sensors}
+
+\subsubsection{Hokuyo UTM-30LX}
+
+The UTM-30LX scans a single line around it's central axis at a rate of 40 Hz. A distance and reflectivity measurement is taken at a resolution of 1/4 of a degree, it's field of vision is 270 degrees, and distance resolution is in the millimeter range. The USB interface, along with open-source software drivers \ref{robotpkg}, allows easy interfacing with PC and embedded hosts.
+
+\subsubsection{XSens MTIG}
+
+The XSens MTIG device uses MEMS sensors along with a GPS receiver to estimate attitude and position estimates at a maximum rate of 100Hz using an undocumented Kalman filter running on its embedded processor. The interface uses USB nd the serial protocol is well documented and supported with various open-source libraries including \ref{robotpkg}.
+
+\subsection{Geometry or Layout}
+
+
+
+\subsection{Challenges}
+
+
+\subsubsection{Synchronization of Sensors}
+ 
+
+\section{Ground-based Test Data Set}
+
+In an attempt to gain some practical experience and flesh out any limitations of the hokuyo device in an outside daylight environment, a ground-based test was implemented. 
+
+\subsection{Description}
+
+The hokuyo sensor along with the MTIG was mounted on boom attached to a standard bicycle. While the bicycle travelled through a residential neighborhood a small laptop acquired the data to files. These files show that on a sunny day the hokuyo can detect at a light-colored perpendicular surface up to 20 meters away. It remains to be determined what distances can be expected on surfaces such as dirt and grass and at angles approaching 30 to 45 degrees from perpendicular, as will be the case for our UAV.
+
+\subsection{Output Sample}
+
+Here we present a set of screenshots showing the animations produced during the bike tests.
+
+A composite image is generated including a number of text data such as the MTIG output angles and a graphical representations of laser scan data, the location data, and video taken by a boom mounted digital camera. The kokuyo data was recorded at a rate of aproximately 20 Hz while the MTIG Data was near 100Hz. Rough synchronization is accomplished by using the MTIG data sample with a timestamp closest to the one in a laser scan (each laser scan is also timestamped).
+
+The next step is to represent the laser scans in a 3D environment, either to create a Digital Terrain Model or to show in a tool such as GDHE. This process is accomplished with the LAAS tools robotpkg and Jafar, and I am still trying to learn these so this tasks is not yet complete.
+
+\section{Mentor Aircraft Project}
+
+As explained above \ref{Elrob Competition}, the immediate goal is to outfit a Multiplex Mentor aircraft with a Hokuyo, Gumstix Overo, and MTIG for the June 2011 competition. Towards this goal, I've integrated a paparazzi autopilot in a standar Mentor airframe and built a reinforced modular payload pod. 
+
+\subsection{Description}
+
+The aircraft is a standard three-axis electric model. It uses two ailerons, an elevator and rudder for control along with a 40A speed controller for thrust control.
+
+The components are listed below :
+
+insert list here
+
+\subsection{Block Diagram}
+
+insert here
+
+\subsection{Construction}
+
+The pod is built using typical model construction techniques. A plywood frame houses the various components and a glass-fiber reinforced foam cover provides a streamlined shape and protects the pod contents in the event of a crash. The payload weight is 650 grams and will require the Mentor to fly at high speed to generate the necessary lift.
+
+Insert aircraft and payload weight tables here.
+ 
+\section{Research perspectives}
+
+
+\subsection{Traversability Mapping and DTM}
+
+\subsection{Localization and Mapping}
+
+\subsection{UGV UAV cooperation}
+
+\section{References}
+
+\end{document}          
