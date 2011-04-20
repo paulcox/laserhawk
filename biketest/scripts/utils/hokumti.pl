@@ -25,10 +25,10 @@ my $sec = 0;
 my $psec;
 my $cnt;
 my $maxdist;
-#my $startang = 360;
-#my $endang = 720;
-my $startang = 480;
-my $endang = 600;
+my $startang = 360;
+my $endang = 720;
+#my $startang = 480;
+#my $endang = 600;
 
 my $term = POSIX::Termios->new;
 my $fh;
@@ -54,7 +54,8 @@ if ($usemti) {
 	$mtithr = threads->create(\&mtithread);
 }
 
-open GETRANGE, "./getrange.elf $hokuyodev $startang $endang 1 |" or die "Couldn't execute program: $!";
+#open GETRANGE, "./getrange.elf $hokuyodev $startang $endang 1 |" or die "Couldn't execute program: $!";
+open GETRANGE, "perl fakerange.pl |" or die "Couldn't execute program: $!";
 
 while (<GETRANGE>){
 	#print $_;
@@ -100,6 +101,7 @@ sub mtithread {
 	#my $mtitime0 = 0;
 	#my $mticnt = 0;
 
+	printf "MTI thread Started.\n";
 	open MTI, "MTIHardTest -o 2 -d 6 $mtidev |" or die "Couldn't execute program: $!";
 	while (<MTI>){
 		#printf $_;
@@ -113,16 +115,16 @@ sub printoutput {
 	#my $str = sprintf "\r\n%06.2f pts: %03d sps: %d max: %d ", $time, $cnt, $sps, $maxdist;
 
 	if ($usemti) {
-		$mtiline =~ /^(.*)\sACC.*EUL(.*)POS\s+(.*)\s+31T\sVEL/;
+		$mtiline =~ /^(.*)\sACC.*EUL(.*)POS\s(.*)\sVEL/;
 		my $mtitime = $1;
 		my $att = $2;
 		my $gps = $3;
 	
-		#printf $att;
+		printf $att."\n";
 		$att =~ /\s+(.+)\s+(.+)\s+(.+)/;
 		$str .= sprintf "att: %06.2f %06.2f %06.2f ", $1, $2, $3;
 
-		#printf $gps."\n";
+		printf $gps."\n";
 		$gps =~ /(\S+)\s(\S+)\s+(.+)/;
 		$str .= sprintf "gps: %06.2f %06.2f %06.2f\r\n", $1, $2, $3;
 	}
