@@ -1,3 +1,5 @@
+docs/*.log
+docs/*.toc
 */Makefile
 */moc_*.cpp
 */ui_*.h
