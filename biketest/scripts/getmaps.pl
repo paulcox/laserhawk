@@ -41,7 +41,6 @@ if ($#ARGV !=1) {print "Specify scan folder name and movie name\nExample: ./getm
 my $path = `pwd`;
 chomp $path;
 $path .= "/..";
-#my $dirname = "2011-03-01-10-32-19";
 my $dirname = $ARGV[0];
 #whine if no subdir
 if (! -e "$path/$dirname") {printf "please specify a valid log folder\n"; exit;}
@@ -109,13 +108,13 @@ sub findtimes {
 	chomp $lasttime;
 	print "last line blank\n" if (!$lasttime);
 	#need to check if it's really a time otherwise bail
-	if ($lasttime < 1287161422) {print "not a good time...\n";exit;}
+	if ($lasttime < 1287161422) {print "not a good last time...\n";exit;}
 	
 	my $firsttime = `tail -n 1 $firstfile`;
 	chomp $firsttime;
-	print "last line blank\n" if (!$firsttime);
+	print "first line blank\n" if (!$firsttime);
 	#need to check if it's really a time otherwise bail
-	if ($firsttime < 1287161422) {print "not a good time...\n";exit;}	
+	if ($firsttime < 1287161422) {print "not a good first time...\n";exit;}	
 	
 	print "first/last times: $firsttime $lasttime\n";
 	
