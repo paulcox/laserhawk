@@ -60,6 +60,7 @@ open GETRANGE, "perl fakerange.pl |" or die "Couldn't execute program: $!";
 while (<GETRANGE>){
 	#print $_;
 	if (/^START(.*?)$/) {
+		$cnt = 0;
 		if ($writelog) {
 			if (-e LOG) {
 				print LOG $ptime;
@@ -83,7 +84,7 @@ while (<GETRANGE>){
 			$sps++;
 		} else {
 			printoutput();			
-			$sps = 0; $cnt = 0; $maxdist = 0;
+			$sps = 0; $maxdist = 0;
 		}
 	} else {
 		if ($time0) {
