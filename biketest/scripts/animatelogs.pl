@@ -25,7 +25,7 @@ use constant DECISECDELAY => 10; #result runs about realtime since scans acquire
 #my $path = "/home/paul/Documents/LAAS/laserhawk/biketest";
 my $path = `pwd`;
 chomp $path;
-$path .= "/..";
+#$path .= "/..";
 
 #require four args
 if ($#ARGV !=3) {print "Specify start and stop indexes and skip param.\nExample: ./animatelogs.pl 2011-03-01-10-32-19 0 9 1\n";exit;}

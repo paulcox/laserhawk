@@ -30,8 +30,8 @@ use constant IMGWIDTH => 600;
 use constant IMGBDR => 50;
 #nominal terrain height
 use constant NOMTH => (IMGHEIGHT)/2;
-use constant MAXTERRAIN => 1500; #1500cm = 15 m
-#use constant MAXTERRAIN => 3000;
+#use constant MAXTERRAIN => 1500; #1500cm = 15 m
+use constant MAXTERRAIN => 3000;
 use constant SCALE => (IMGHEIGHT-2*IMGBDR)/(2*MAXTERRAIN);
 #hokuyo constants
 use constant RESDEG => 360/1440;
@@ -49,7 +49,7 @@ if ($#ARGV !=3) {print "Specify start and stop indexes and skip param.\nExample:
 #my $path = "/home/paul/Documents/LAAS/laserhawk/biketest";
 my $path = `pwd`;
 chomp $path;
-$path .= "/..";
+#$path .= "/..";
 #my $dirname = "2011-03-01-10-32-19";
 my $dirname = $ARGV[0];
 #whine if no subdir
@@ -122,7 +122,7 @@ sub plotlog {
 
 	initimg();
 
-	my $lcnt = 0;
+	my $lcnt = 0; my $lcnt2 = 0;
 	my $dist = 0;
 	my $time = 0;
 	my $maxdist = 0;
@@ -143,11 +143,22 @@ sub plotlog {
 			#}
 			#my $junk = $1;
 			#my $other = $2;
-			$_ =~ /^(.*)\sPOS/;
-			my $other = $1;
+			
+			#$_ =~ /^(.*)\sPOS/;
+			#my $other = $1;
 			#print "MTI fields :".$other."\n";
-			$other =~ /\s*(\S+)\s+(\S+)\s+(\S+)/;
-			$ang1=$1;$ang2=$2;$ang3=$3;			
+			#$other =~ /\s*(\S+)\s+(\S+)\s+(\S+)/;
+			
+			/^(.*)\sACC.*EUL(.*)POS\s(.*)\sVEL/;
+			my $mtitime = $1;
+			my $att = $2;
+			my $gps = $3;
+			
+			$att =~ /\s+(.+)\s+(.+)\s+(.+)/;
+			printf "att: %06.2f %06.2f %06.2f\n", $1, $2, $3;
+			$ang1=$1;$ang2=$2;$ang3=$3;	
+			
+					
 			#($ang1,$ang2,$ang3) = split(/\s+/,$_);
 			next;
 		}
@@ -155,15 +166,22 @@ sub plotlog {
 			$time = $_;
 			next;
 		}
-		($lcnt,$dist) = split(/       /,$_);
+		#($lcnt,$dist) = split(/       /,$_);
+		($lcnt2,$dist) = split(/       /,$_);
+		if (!$dist) {
+			$time = $_;
+			next;
+		}
 		next if ($dist < $mindist);
 		$maxdist = $dist if ($dist>$maxdist);
 
-		#my $theta = $lcnt*RESRAD - deg2rad(135);
+		#my $theta = $lcnt*RESRAD;# - deg2rad(135);
 		my $theta = $lcnt*RESRAD - deg2rad(135) + deg2rad($ang1);
 		my $x = $dist*sin($theta)/10;
 		my $y = $dist*cos($theta)/10;
 		drawpt($x,$y);
+		$lcnt++;
+		#print $lcnt;
 	}
 	$maxdists[$gcnt] = $maxdist;
 	printf " %6.2f maxdist: %05d ",$time-$time0,$maxdist;
@@ -277,6 +295,7 @@ sub writeimg {
 	$im->string(gdSmallFont,IMGBDR/2,IMGBDR/6,"laser scanner log plotter",$blue);
 	$im->string(gdSmallFont,IMGBDR/2,IMGBDR/2,"Paul Cox 2011 LAAS/CNRS",$blue);
 
+goto SKIP;
 	#insert google map
 	my $mapfile = sprintf "$path/$dirname-maps/map$timeinsec.jpg";
 
@@ -311,7 +330,7 @@ sub writeimg {
 		#go get it!
 		#print "ERROR: Unable to open $framefile\n";
 	}
-
+SKIP:
 	my $imgfile = sprintf "$path/$dirname-imgs/scan%06d.png",$scncnt;
 	open(IMG, ">$imgfile") or die $1;
 	binmode IMG;

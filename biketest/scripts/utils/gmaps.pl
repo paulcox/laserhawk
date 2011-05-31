@@ -79,34 +79,39 @@ foreach my $file (@scanlist) {
 # Points Array Format:
 # ([lat1,lng1],[lat2,lng2],...[latn,lngn])
 
+print "Encoding points into google polyline\n";
+
 my $tolerance = 0.3;
 my ($lstr,$pstr) = Google_Encode(\@Ipoints,$tolerance);
 
-print $lstr."\n";
-print $pstr."\n";
+print "lstr: ".$lstr."\n";
+print "pstr: ".$pstr."\n";
 
 MOOSE:
 my $pstr2 = 'cn{hGeo`HQLm@p@AG`@[g@ZDJCHKF?EoArASHH?IBKEFDA@@DFCK@PMDAPBTHK_@JBHUNH?c@B?DMTUz@y@J?AI?L@ICEEP@EAD?CGDy@p@w@x@UPY\\URAFMDWXIDG?@DB{@Y\\CDB?BFKSAEHFP?BB]Me@KPEVCRBK?a@Ey@OgAYwAEmAFyAPlO\\f@MYFa@B}@R';
 my $pstr1 = 'oo|pGzj`D@PBOSPNMKOeBdAa@B]O}BuDc@qB`@yAdBcAt@Ip@^t@pDcAdDeAX}@Y{@kA[{ATmB~A_BbAKv@h@n@jAN~@I`Bq@xAoBr@q@rAo@R]OUc@P{BnA}CfEmErA_AhAEd@l@|@|D@nAw@zA_DfCaC`@yBr@{@Aw@]o@y@a@cAGgA\\sBj@mAdFeEb@E\\`@R|Bl@zBCxAa@bAsAl@oAOeAeASyAPm@vCuCnAs@nABnCxAn@Ar@a@f@{AAyA}@gBkAe@q@Ng@h@u@~Cs@t@aDX}[xIy@LkAQwCaCkBbBWv@DpCx@tArAJjBcArEiElFgBrNoDfDqAf@Bb@\\v@rCAjC[p@i@\\}@DcAYs@k@a@eAEoAXsAdAmA|@_@jAXbArATfBS|AeArAqAPcA]y@qAWmANyB~@}@rAMjAXn@z@TtB[rAeBjBc@Fe@MqAcB]sBb@aBlBiA|@Cx@j@VxBOnCk@|@w@X}@ScAkA[oAFeBr@mApAi@bAJj@p@ZfBE|Ac@jBq@n@aAJu@e@o@uAQiCTwAhAaA|AEbAj@d@|AKhBe@bBeA|@o@?w@a@}@{AUyAZuB~@}@zAMfAl@`@lADrAYfBk@bA_A`@aAa@{@kAa@oB`@{BjA_ArAIz@j@\\vA?|Bi@bB_Ax@}@?u@i@m@}AGaB^yB~@cAp@G|@n@dAfDMbAm@|@gAb@w@Gu@k@[gA@wBx@{Al@Wj@Ah@L\\Z^dALdBSjAo@r@yAR}@[i@y@QeBd@oB|@u@dAKfAj@\\|@J`BKbAu@bAkA`@w@Ku@_A[eBTsBbA}@|AIbAp@ZxAG~Am@`Bu@d@{@?eAg@i@_AKwAZ{A`AcAv@[fAEf@]l@cEfA_Al@FXb@hArEBjAc@`AsAr@oEfE';
 #my $pstr2 = '}oagFemfmCi@E[Nl@sCi@eDt@kBQqGZaAXEh@Lh@x@rBtMJjBMxBi@`BcAxAiA`AmBx@sARaB?cA[s@s@LcBfDoHr@c@r@Mv@?fAXrAdAbBfDl@zCBvE_@jCc@nAiCnC}@XaAE{@g@Us@BmEw@sIBsA|@mCzCoDl@Kx@Pl@j@\\~@NvEw@~FoBnDwCpBqAVkA@y@Om@k@bA_GjA}Kd@{AbAiAn@UxDk@fBDo@[cAZaAtAwBnBqApBs@`@e@CGWVSnBQ`@aCUi@k@Mi@Je@f@QlBPr@`@XhEoB';
+#http://maps.google.com/maps/api/staticmap?size=256x256&maptype=satellite&sensor=false&path=weight:3|color:orange|enc:oo|pGzj`D@PBOSPNMKOeBdAa@B]O}BuDc@qB`@yAdBcAt@Ip@^t@pDcAdDeAX}@Y{@kA[{ATmB~A_BbAKv@h@n@jAN~@I`Bq@xAoBr@q@rAo@R]OUc@P{BnA}CfEmErA_AhAEd@l@|@|D@nAw@zA_DfCaC`@yBr@{@Aw@]o@y@a@cAGgA\sBj@mAdFeEb@E\`@R|Bl@zBCxAa@bAsAl@oAOeAeASyAPm@vCuCnAs@nABnCxAn@Ar@a@f@{AAyA}@gBkAe@q@Ng@h@u@~Cs@t@aDX}[xIy@LkAQwCaCkBbBWv@DpCx@tArAJjBcArEiElFgBrNoDfDqAf@Bb@\v@rCAjC[p@i@\}@DcAYs@k@a@eAEoAXsAdAmA|@_@jAXbArATfBS|AeArAqAPcA]y@qAWmANyB~@}@rAMjAXn@z@TtB[rAeBjBc@Fe@MqAcB]sBb@aBlBiA|@Cx@j@VxBOnCk@|@w@X}@ScAkA[oAFeBr@mApAi@bAJj@p@ZfBE|Ac@jBq@n@aAJu@e@o@uAQiCTwAhAaA|AEbAj@d@|AKhBe@bBeA|@o@?w@a@}@{AUyAZuB~@}@zAMfAl@`@lADrAYfBk@bA_A`@aAa@{@kAa@oB`@{BjA_ArAIz@j@\vA?|Bi@bB_Ax@}@?u@i@m@}AGaB^yB~@cAp@G|@n@dAfDMbAm@|@gAb@w@Gu@k@[gA@wBx@{Al@Wj@Ah@L\Z^dALdBSjAo@r@yAR}@[i@y@QeBd@oB|@u@dAKfAj@\|@J`BKbAu@bAkA`@w@Ku@_A[eBTsBbA}@|AIbAp@ZxAG~Am@`Bu@d@{@?eAg@i@_AKwAZ{A`AcAv@[fAEf@]l@cEfA_Al@FXb@hArEBjAc@`AsAr@oEfE&path=weight:3|color:blue|enc:cn{hGeo`HQLm@p@AG`@[g@ZDJCHKF?EoArASHH?IBKEFDA@@DFCK@PMDAPBTHK_@JBHUNH?c@B?DMTUz@y@J?AI?L@ICEEP@EAD?CGDy@p@w@x@UPY\URAFMDWXIDG?@DB{@Y\CDB?BFKSAEHFP?BB]Me@KPEVCRBK?a@Ey@OgAYwAEmAFyAPlO\f@MYFa@B}@R
 
 #exit;
 	#my $zoom = "zoom=$lstr";
 	#maptypes can be roadmap | satellite | hybrid | terrain
 	my $stuff = 'size=256x256&maptype=satellite&sensor=false';
 	#my $mark1 = "markers=color:blue|label:HOME|$lat,$lon";
-	my $gpath1= "path=weight:3|color:orange|enc:$pstr1";
+	my $gpath= "path=weight:3|color:orange|enc:$pstr1";
 	my $gpath2= "path=weight:3|color:blue|enc:$pstr2";
-	#my $url = GOOGURL."?$zoom&$stuff&$gpath";
-	my $url = GOOGURL."?$stuff&$gpath1&$gpath2";
-	my $pic = new Image::Grab;
-	print $url."\n";
+	my $url = GOOGURL."?$zoom&$stuff&$gpath";
+	#my $url = GOOGURL."?$stuff&$gpath1&$gpath2";
 
+	print "Requesting map from google\n";
+	print $url."\n";
+	
+	my $pic = new Image::Grab;
 	$pic->url($url);
 	$pic->grab;
 
-	# Now to save the image to disk
-	my $mapfile = sprintf "$path/$dirname/map2.jpg";
+	# save the image to disk
+	my $mapfile = sprintf "$path/mapout.jpg";
 	print "  ".$mapfile."\n";
 	open(IMAGE, ">$mapfile") || die "$mapfile: $!";
 	if (!$pic->image){print "ERROR: No map was grabbed\n"; exit;} 
