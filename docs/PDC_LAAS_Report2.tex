@@ -13,7 +13,7 @@
 
 \graphicspath{{./}{images/}}
 
-\title{Performance Evaluation of a UAV-mounted LIDAR and camera for Traversability Assessment - Preliminary Report}
+\title{Performance Evaluation of a mini UAV LIDAR for Traversability Assessment}
 \author{Paul D. Cox, Intern at LAAS-CNRS, 5AE INSA Toulouse}
 
 \begin{document}
@@ -26,11 +26,11 @@
 
 \section{Report Purpose}
 
-This report's purpose is to present the ideas behind this project and the progress so far. It also includes practical discussions intended to guide the group as it attempts to broaden its use of UAVs. A literature review has been significantly delayed due to the early technical advancement necessary to adequately plan for the June competition, rendering a theoretical analysis at this stage impossible. The author hopes that a more than cursory review of the field and how this project fits into it can be presented in the final report.
+This report's purpose is to present the progress in the development of a mini UAV and its LIDAR-based payload. It also includes practical discussions intended to guide the group as it attempts to broaden its use of UAVs. A literature review on the subject of traversability or terrain mapping is not included, as the bulk of the author's efforts were focused on the creation of material and software tools necessary for putting the payload in the air and to gather its data.
 
 \section{LAAS Robotics}
 
-The Robotics and Interactions (RIS) group of the LAAS operates a number of robots that serve as testbeds for algorithm development and research \cite{ugvs}. These indoor and outdoor robots are primarily UGVs adapted for various tasks or needs. For example, Rackham (Figure \ref{fig:Rackham}) is equipped with a plethora of vision and proximity sensors \cite{rackham}, while Jido (Figure \ref{fig:Jido}) is outfit with a manipulator \cite{jido}, and Dala (Figure \ref{fig:Dala}) is capable of high-speed outdoor travel \cite{dala}. The group is interested in complementing its ground-based fleet with airborne vehicles. The intent is to research cooperative scenarios where the airborne vehicles provide a sensing advantage due to their unique perspective and mobility. More specifically, the group decided to include a UAV in this years ELROB competition attempt, and this project will be to create that UAV \cite{this}. 
+The Robotics and Interactions (RIS) group of the LAAS operates a number of robots that serve as testbeds for algorithm development and research \cite{ugvs}. These indoor and outdoor robots are primarily UGVs adapted for various tasks or needs. For example, Rackham (Figure \ref{fig:Rackham}) is equipped with a plethora of vision and proximity sensors \cite{rackham}, while Jido (Figure \ref{fig:Jido}) is outfit with a manipulator \cite{jido}, and Dala (Figure \ref{fig:Dala}) is capable of high-speed outdoor travel \cite{dala}. The group is interested in complementing its ground-based fleet with airborne vehicles. The intent is to research cooperative scenarios where the airborne vehicles provide a sensing advantage due to their unique perspective and mobility. More specifically, the group decided to include a mini UAV in this years ELROB competition attempt, and the goal of this project will be to create that UAV \cite{this}. Future research subjects will be able to use the practical tools developed as a stepping stone to more theoretical undertakings.
 
 \begin{figure}[htb]
   \centering
@@ -49,22 +49,33 @@ There have been a number of UAV projects at LAAS: A dirigible named Karma \cite{
 
 \section{ELROB competition}
 
-The European Land Robot (ELROB) competition is held yearly in Belgium, and the theme alternates every year between military and civilian \cite{elrob}. For the 2011 civilian event, the competition is divided into four scenarios, namely: Reconnaissance and surveillance, Transport, Camp security, and Autonomous navigation. The primary team goal for our UAV in the competition is to assist the UGV by furnishing traversability information that will aid in the path planning process. The time to reach various waypoints is limited so locating any potential roadblocks or highly traversable terrain beyond the reaches of the UGV sensors is a potential source for route optimizations.
+The European Land Robot (ELROB) competition is held yearly in Belgium, and the theme alternates every year between military and civilian \cite{elrob}. For the 2011 civilian event to be held in June, the competition is divided into four scenarios, namely: Reconnaissance and surveillance, Transport, Camp security, and Autonomous navigation. The primary team goal for our UAV in the competition is to assist the UGV by furnishing traversability information that will aid in the path planning process. The time to reach various waypoints is limited so locating any potential roadblocks or highly traversable terrain beyond the reaches of the UGV sensors is a potential source for route optimizations.
 
 \chapter{Project Description}
 
-The platform selected by the group is a low-power embedded system based on the Texas Instrument OMAP3 processor (details in Section \ref{sec:AirborneProcessor}). The Gumstix Overo module \cite{Overo}, on which the OMAP processor is mounted, provides the capacity to run the Linux operating system with minimal physical dimension and power requirements. 
+The computing platform selected by the group for the UAV is a low-power embedded system based on the Texas Instrument OMAP3 processor (details in Section \ref{sec:AirborneProcessor}). The Gumstix Overo module \cite{Overo}, on which the OMAP processor resides, provides the capacity to run the Linux operating system with minimal physical dimension and power requirements. 
 
 The sensors selected include the Hokuyo UTM-30LX (Section \ref{Hokuyo}), a scanning laser range finder, a CMOS image sensor (Section \ref{caspa}), and an inertial navigation system (XSens MTIG, Section \ref{MTIG}). Apart from the camera, all these sensors are already used extensively at the LAAS and are supported with custom driver software developed at the LAB \cite{robotpkg}. Furthermore, these drivers have already been ported for use with the ARM processor architecture.
 
-This payload equipment will reside on-board a low-cost R/C type of aircraft controlled by the paparazzi autopilot system as detailed in Sections \ref{sec:mentorproject} and \ref{sec:paparazzi}
+Insert picture of hokuyo and MTIG here
+
+This payload equipment will reside on-board a low-cost aircraft controlled by the paparazzi autopilot system as detailed in Sections \ref{sec:mentorproject} and \ref{sec:paparazzi}
 
 \section{Airborne Processor}
 \label{sec:AirborneProcessor}
 
 \subsection{Hardware}
 
-The central component of the payload is the Gumstix Overo board. This board contains the TI OMAP proccessor along with wifi, ethernet, bluetooth transceivers, and a convenient microSD socket. The TI OMAP System On Chip (SOC) processor incorporates a 600MHz 32-bit ARM Cortex-A8 core, a DSP, and many peripherals including UART, I2C, SPI, SD, USB, and a dedicated camera interface. The package-on-package (POP) configuration, where the SDRAM and NAND memory are stacked directly on top of the processor saves valuable space and weight and decreases EMI/EMC issues. While the camera interface and the DSP provide for future research capabilities, in the near term the important interface is USB Host as this will be used to receive laser scanner telemetry along with other serial-based communications (Intertial Navigation System and ground communication).
+The central component of the payload is the Gumstix Overo module (Figure \ref{fig:overo_mod}). The module is used along with a carrier board. The carrier board selected for this project is the Summit product from Gumstix (Figure \ref{fig:overo_summit}). Together, the module and the carrier board contain the TI OMAP proccessor along with wifi, ethernet, bluetooth transceivers, and a convenient microSD socket. The TI OMAP System On Chip (SOC) processor incorporates a 600MHz 32-bit ARM Cortex-A8 core, a DSP, and many peripherals including UART, I2C, SPI, SD, USB, and a dedicated camera interface. The package-on-package (POP) configuration, where the SDRAM and NAND memory are stacked directly on top of the processor saves valuable space and weight and decreases EMI/EMC issues. While the camera interface and the DSP provide for future research capabilities, in the near term the important interface is USB Host as this will be used to receive laser scanner data along with other serial-based communications (Intertial Navigation System and ground communication).
+
+\begin{figure}[htb]
+  \centering
+  \subfloat[Module]{\label{fig:overo_mod}\includegraphics[width=80mm]{overo_in_hand.jpg}}                
+  \subfloat[With Summit carrier board]{\label{fig:overo_summit}\includegraphics[width=80mm]{overo_on_summit.jpg}}
+  \caption{Gumstix Overo}
+  \label{fig:overo}
+\end{figure}
+
 
 \subsection{Software}
 
@@ -75,16 +86,25 @@ The OMAP processor runs a full Linux operating system, cross compiled on a stand
 \subsection{Hokuyo UTM-30LX}
 \label{Hokuyo}
 
-The UTM-30LX scans a single line around it's central axis at a rate of 40 Hz. A distance and reflectivity measurement is taken at a resolution of 1/4 of a degree, it's field of vision is 270 degrees, and distance resolution is in the millimeter range. The USB interface, along with open-source software drivers \cite{robotpkg}, allows easy interfacing with PC and embedded hosts.
+The UTM-30LX scans a single line around it's central axis at a maximum rate of 40 Hz. A distance and reflectivity measurement is taken at a resolution of 1/4 of a degree, it's field of vision is 270 degrees, and distance resolution is in the sub-centimeter range. The USB interface, along with open-source software drivers \cite{robotpkg}, allows easy interfacing with PC and embedded hosts, but a number of practical limitations cause the actual maximum data rate to be considerably below what is expected (see results/problems section).
 
 \subsection{Aptina MT9V032 Camera}
 \label{caspa}
 
 The MT9V032 CMOS device from Aptina was selected due to its global shutter characteristic that guarantees that all pixels in a frame are acquired simultaneously (unlike the much more common rolling shutter cameras found in most webcams, cell phones, etc). Camera resolution is 752 x 480 pixels and is available in color or black and white. 
 
-The CMOS Camera is interfaced to the OMAP processor using the dedicated camera bus by means of level converters (1.8V/3.3V). This direct connection is a parallel bus with a maximum clock rate of 40MHz, which allows for fast and efficient acquisition of image data. A custom designed camera board using this sensor is in the works at the LAAS while initial testing will depend on the commercially available camera board from Gumstix, INC called Caspapx \cite{caspa}.
+The CMOS Camera is interfaced to the OMAP processor using the dedicated camera bus by means of level converters (1.8V/3.3V) and a high-density flat flex cable. This direct connection is a parallel bus with a maximum clock rate of 40MHz, which allows for fast and efficient acquisition of image data. A custom designed camera board using this sensor is in the works at the LAAS while initial testing will depend on the commercially available camera board from Gumstix, INC called Caspapx \cite{caspa}, and displayed in Figure \ref{fig:caspa}.
+
+\begin{figure}[ht]
+ \centering
+ \includegraphics[width=8cm]{overo_and_caspa.jpeg}
+ \caption{Overo connected to Caspapx Camera}
+ \label{fig:caspa}
+\end{figure}
 
 Software support is provided as a linux driver, currently for kernel version 2.6.34. The driver has been tested to work and performance remains to be determined.
+
+Insert pictures taken in flight here
 
 \subsection{XSens MTIG INS}
 \label{MTIG}
@@ -304,36 +324,49 @@ The weight of the individual components are listed in Figure \ref{fig:weight1} a
 
 \begin{figure}[ht]
   \centering
-  \subfloat[Payload]{\label{fig:weight1}\includegraphics[width=70mm]{./weights.png}}                
-  \subfloat[Overall]{\label{fig:weight2}\includegraphics[width=70mm]{./weights_overall.png}}
+  \subfloat[Payload]{\label{fig:weight1}\includegraphics[width=70mm]{weights.png}}                
+  \subfloat[Overall]{\label{fig:weight2}\includegraphics[width=70mm]{weights_overall.png}}
   \caption{Weights}
   \label{fig:weights}
 \end{figure} 
 
-\chapter{Research Perspectives}
+\chapter{Results}
 
-For the time being, focus is on the practical realization of a useful data set and the research aspect is limited to asking general questions about potential goals and techniques. This section is simply a collection of notes that will be developed for the final report.
+\begin{figure}[ht]
+ \centering
+ \includegraphics[width=10cm]{mentor_in_flight.JPG}
+ % 800px-Mentor1_2.jpg: 800x600 pixel, 180dpi, 11.29x8.47 cm, bb=0 0 320 240
+ \caption{Mentor and Payload in Flight}
+ \label{fig:mentor_flying}
+\end{figure}
 
-Much research literature on applications of airborne lidars : very common in forestry, land management, archeology.
 
-Techniques to reconstruct ground level by filtering obstructions, or to model buildings or land parcels, determine tree heights or diameters, estimate shore lines.
 
-Much research uses complimentary nature of vision with lidar. 
+\chapter{Challenges}
 
-visual servoing
+\subsection{Hokuyo Lidar performance}
 
-\section{Traversability Mapping and DTM}
+- limited lidar range
+- limited lidar driver throughput
 
-Constructing DTM, determining traversability from DTM, types of traversability maps... Obstacle detection using aerial Lidar and/or vision. Does the use of topographic maps known a-priori change the nature of the problem? How about hi-res satellite imagery? Since potential paths can be determined from these maps, UAV tasks could be to vet those paths in the goal of a classification of route options by risk, distance, time. Is completely autonomous traversability assessment a hard requirement? Wouldn't a man-in-the-loop scenario, where a supervisor be more realistic? At Elrob, human interaction is permitted but the amount of time used is proportional to the score penalty. Presenting an image mosaic, along with satellite imagery, where the potential routes are highlighted along with traversability issues along them to a human supervisor. 
+\subsection{GPS}
 
-UAV/UGV scenarios :
-Scout : The UAV leads the UGV along the current route, scanning along given waypoints to confirm the route as traversable. 
+erratic MTIG position estimates
 
-\section{UGV UAV cooperation}
+Comparison of GPS track recorded with autopilot and payload
 
-By default, UAV scans in areas complimentary to the area under acquisition by UGV. An area beyond and slightly overlapping with the UGV field of vision may be ideal. Need to determine in what scenarios UGVs would request specific areas to be scanned. For example, if robot is at a split in a path, request to UAV to map both paths. Is strategy that UGV provides goal waypoint and UAV maps area between that waypoint and the UGVs present position?
+\begin{figure}[ht]
+  \centering
+  \subfloat[Autopilot GPS]{\label{fig:ap_gps}\includegraphics[width=70mm]{11_05_26__17_08_52_pprz_gmap.png}}                
+%  \subfloat[Payload GPS]{\label{fig:payload_gps}\includegraphics[width=70mm]{hoku2_2000_10000.jpg}}
+  \subfloat[Payload GPS]{\label{fig:payload_gps}\includegraphics[width=82mm]{hoku2_flight_payload_gps.png}}
+  \caption{GPS Tracks}
+  \label{fig:track_comp}
+\end{figure} 
 
- Since the data volume is large, determining what info needs to be processed onboard and what is transmitted on ground is crucial. The tradeoff is that compute power on ground is easy but getting the data to the ground is not. Processing with simplified algorithms risks filtering useful information so a very specific goal needs to be defined and enough analysis performed to determine that . Also transmission techniques with lossy links is also a large field of study in and of itself. 
+\chapter{Conclusion}
+
+
 
 \begin{thebibliography}{9}
 
