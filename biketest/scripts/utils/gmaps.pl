@@ -21,6 +21,7 @@ if (! -e "$path/$dirname") {printf "please specify a valid log folder\n"; exit;}
 my ($east,$north,$zone);
 my $middlefile;
 
+SCAN:
 my @scanlist = <$path/$dirname/scan*.txt>;
 my $firstfile = shift @scanlist;
 $middlefile = $scanlist[int($#scanlist/2)];
@@ -33,7 +34,12 @@ my $lasttime = `tail -n 1 $lastfile`;
 chomp $lasttime;
 print "last line blank\n" if (!$lasttime);
 #need to check if it's really a time otherwise bail
-if ($lasttime < 1287161422) {print "not a good last time...\n";exit;}
+if ($lasttime < 1287161422) {
+	print "not a good last time...\n";
+	#exit;
+	`rm $lastfile`;
+	goto SCAN;
+}
 
 my $firsttime = `tail -n 1 $firstfile`;
 chomp $firsttime;
@@ -48,11 +54,13 @@ printf "delta: %d seconds\n", $lasttime-$firsttime;
 my $ptcnt = 0;
 my @Ipoints	= ( ) ;
 
-goto MOOSE;
+my $startcnt = 21000;
+my $lastcnt = 25000;
 	
 foreach my $file (@scanlist) {
 	$ptcnt++;
-	#next if ($ptcnt < 10000);
+	
+	next if ($ptcnt < $startcnt);
 	my $mtidata = `head -1 $file`;
 
 	#grab gps data
@@ -72,7 +80,7 @@ foreach my $file (@scanlist) {
 
 	push( @Ipoints, [$lat,$lon] );
 
-	#last if ($ptcnt eq 20000);
+	last if ($ptcnt eq $lastcnt);
 }
 
 # Call as: (<Encoded Levels String>, <Encoded Points String>) = &Google_Encode(<Reference to array of points>, <tolerance in meters>);
@@ -81,26 +89,23 @@ foreach my $file (@scanlist) {
 
 print "Encoding points into google polyline\n";
 
-my $tolerance = 0.3;
+my $tolerance = 0.01;
 my ($lstr,$pstr) = Google_Encode(\@Ipoints,$tolerance);
 
 print "lstr: ".$lstr."\n";
 print "pstr: ".$pstr."\n";
 
-MOOSE:
-my $pstr2 = 'cn{hGeo`HQLm@p@AG`@[g@ZDJCHKF?EoArASHH?IBKEFDA@@DFCK@PMDAPBTHK_@JBHUNH?c@B?DMTUz@y@J?AI?L@ICEEP@EAD?CGDy@p@w@x@UPY\\URAFMDWXIDG?@DB{@Y\\CDB?BFKSAEHFP?BB]Me@KPEVCRBK?a@Ey@OgAYwAEmAFyAPlO\\f@MYFa@B}@R';
-my $pstr1 = 'oo|pGzj`D@PBOSPNMKOeBdAa@B]O}BuDc@qB`@yAdBcAt@Ip@^t@pDcAdDeAX}@Y{@kA[{ATmB~A_BbAKv@h@n@jAN~@I`Bq@xAoBr@q@rAo@R]OUc@P{BnA}CfEmErA_AhAEd@l@|@|D@nAw@zA_DfCaC`@yBr@{@Aw@]o@y@a@cAGgA\\sBj@mAdFeEb@E\\`@R|Bl@zBCxAa@bAsAl@oAOeAeASyAPm@vCuCnAs@nABnCxAn@Ar@a@f@{AAyA}@gBkAe@q@Ng@h@u@~Cs@t@aDX}[xIy@LkAQwCaCkBbBWv@DpCx@tArAJjBcArEiElFgBrNoDfDqAf@Bb@\\v@rCAjC[p@i@\\}@DcAYs@k@a@eAEoAXsAdAmA|@_@jAXbArATfBS|AeArAqAPcA]y@qAWmANyB~@}@rAMjAXn@z@TtB[rAeBjBc@Fe@MqAcB]sBb@aBlBiA|@Cx@j@VxBOnCk@|@w@X}@ScAkA[oAFeBr@mApAi@bAJj@p@ZfBE|Ac@jBq@n@aAJu@e@o@uAQiCTwAhAaA|AEbAj@d@|AKhBe@bBeA|@o@?w@a@}@{AUyAZuB~@}@zAMfAl@`@lADrAYfBk@bA_A`@aAa@{@kAa@oB`@{BjA_ArAIz@j@\\vA?|Bi@bB_Ax@}@?u@i@m@}AGaB^yB~@cAp@G|@n@dAfDMbAm@|@gAb@w@Gu@k@[gA@wBx@{Al@Wj@Ah@L\\Z^dALdBSjAo@r@yAR}@[i@y@QeBd@oB|@u@dAKfAj@\\|@J`BKbAu@bAkA`@w@Ku@_A[eBTsBbA}@|AIbAp@ZxAG~Am@`Bu@d@{@?eAg@i@_AKwAZ{A`AcAv@[fAEf@]l@cEfA_Al@FXb@hArEBjAc@`AsAr@oEfE';
-#my $pstr2 = '}oagFemfmCi@E[Nl@sCi@eDt@kBQqGZaAXEh@Lh@x@rBtMJjBMxBi@`BcAxAiA`AmBx@sARaB?cA[s@s@LcBfDoHr@c@r@Mv@?fAXrAdAbBfDl@zCBvE_@jCc@nAiCnC}@XaAE{@g@Us@BmEw@sIBsA|@mCzCoDl@Kx@Pl@j@\\~@NvEw@~FoBnDwCpBqAVkA@y@Om@k@bA_GjA}Kd@{AbAiAn@UxDk@fBDo@[cAZaAtAwBnBqApBs@`@e@CGWVSnBQ`@aCUi@k@Mi@Je@f@QlBPr@`@XhEoB';
-#http://maps.google.com/maps/api/staticmap?size=256x256&maptype=satellite&sensor=false&path=weight:3|color:orange|enc:oo|pGzj`D@PBOSPNMKOeBdAa@B]O}BuDc@qB`@yAdBcAt@Ip@^t@pDcAdDeAX}@Y{@kA[{ATmB~A_BbAKv@h@n@jAN~@I`Bq@xAoBr@q@rAo@R]OUc@P{BnA}CfEmErA_AhAEd@l@|@|D@nAw@zA_DfCaC`@yBr@{@Aw@]o@y@a@cAGgA\sBj@mAdFeEb@E\`@R|Bl@zBCxAa@bAsAl@oAOeAeASyAPm@vCuCnAs@nABnCxAn@Ar@a@f@{AAyA}@gBkAe@q@Ng@h@u@~Cs@t@aDX}[xIy@LkAQwCaCkBbBWv@DpCx@tArAJjBcArEiElFgBrNoDfDqAf@Bb@\v@rCAjC[p@i@\}@DcAYs@k@a@eAEoAXsAdAmA|@_@jAXbArATfBS|AeArAqAPcA]y@qAWmANyB~@}@rAMjAXn@z@TtB[rAeBjBc@Fe@MqAcB]sBb@aBlBiA|@Cx@j@VxBOnCk@|@w@X}@ScAkA[oAFeBr@mApAi@bAJj@p@ZfBE|Ac@jBq@n@aAJu@e@o@uAQiCTwAhAaA|AEbAj@d@|AKhBe@bBeA|@o@?w@a@}@{AUyAZuB~@}@zAMfAl@`@lADrAYfBk@bA_A`@aAa@{@kAa@oB`@{BjA_ArAIz@j@\vA?|Bi@bB_Ax@}@?u@i@m@}AGaB^yB~@cAp@G|@n@dAfDMbAm@|@gAb@w@Gu@k@[gA@wBx@{Al@Wj@Ah@L\Z^dALdBSjAo@r@yAR}@[i@y@QeBd@oB|@u@dAKfAj@\|@J`BKbAu@bAkA`@w@Ku@_A[eBTsBbA}@|AIbAp@ZxAG~Am@`Bu@d@{@?eAg@i@_AKwAZ{A`AcAv@[fAEf@]l@cEfA_Al@FXb@hArEBjAc@`AsAr@oEfE&path=weight:3|color:blue|enc:cn{hGeo`HQLm@p@AG`@[g@ZDJCHKF?EoArASHH?IBKEFDA@@DFCK@PMDAPBTHK_@JBHUNH?c@B?DMTUz@y@J?AI?L@ICEEP@EAD?CGDy@p@w@x@UPY\URAFMDWXIDG?@DB{@Y\CDB?BFKSAEHFP?BB]Me@KPEVCRBK?a@Ey@OgAYwAEmAFyAPlO\f@MYFa@B}@R
+#there's a problem regarding double backslashes, getting rid of the second backslash seems to do the trick...
+$pstr =~ s/\\\\/\\/g;
 
-#exit;
 	#my $zoom = "zoom=$lstr";
 	#maptypes can be roadmap | satellite | hybrid | terrain
 	my $stuff = 'size=256x256&maptype=satellite&sensor=false';
 	#my $mark1 = "markers=color:blue|label:HOME|$lat,$lon";
-	my $gpath= "path=weight:3|color:orange|enc:$pstr1";
-	my $gpath2= "path=weight:3|color:blue|enc:$pstr2";
-	my $url = GOOGURL."?$zoom&$stuff&$gpath";
+	my $gpath= "path=weight:3|color:orange|enc:$pstr";
+	#my $gpath2= "path=weight:3|color:blue|enc:$pstr2";
+	#my $url = GOOGURL."?$zoom&$stuff&$gpath";
+	my $url = GOOGURL."?$stuff&$gpath";
 	#my $url = GOOGURL."?$stuff&$gpath1&$gpath2";
 
 	print "Requesting map from google\n";
@@ -111,9 +116,11 @@ my $pstr1 = 'oo|pGzj`D@PBOSPNMKOeBdAa@B]O}BuDc@qB`@yAdBcAt@Ip@^t@pDcAdDeAX}@Y{@k
 	$pic->grab;
 
 	# save the image to disk
-	my $mapfile = sprintf "$path/mapout.jpg";
+	my $mapfile = sprintf "$path/map_$dirname\_$startcnt\_$lastcnt.jpg";
 	print "  ".$mapfile."\n";
-	open(IMAGE, ">$mapfile") || die "$mapfile: $!";
+	
 	if (!$pic->image){print "ERROR: No map was grabbed\n"; exit;} 
+	open(IMAGE, ">$mapfile") || die "$mapfile: $!";
 	print IMAGE $pic->image;
 	close IMAGE;
+	`display $mapfile`
