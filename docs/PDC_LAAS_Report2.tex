@@ -7,13 +7,18 @@
 %\usepackage{showkeys}
 \usepackage{gensymb}
 
+\usepackage{textcomp}
+\usepackage{listings}
+\usepackage{color}
+\usepackage{appendix}
+
 \renewcommand{\topfraction}{.9}
 \renewcommand{\bottomfraction}{.9}
 \renewcommand{\textfraction}{.1}
 
 \graphicspath{{./}{images/}}
 
-\title{Performance Evaluation of a mini UAV LIDAR for Traversability Assessment}
+\title{Performance Evaluation of a mini UAV LIDAR for Terrain Traversability Assessment}
 \author{Paul D. Cox, Intern at LAAS-CNRS, 5AE INSA Toulouse}
 
 \begin{document}
@@ -55,14 +60,22 @@ The European Land Robot (ELROB) competition is held yearly in Belgium, and the t
 
 The computing platform selected by the group for the UAV is a low-power embedded system based on the Texas Instrument OMAP3 processor (details in Section \ref{sec:AirborneProcessor}). The Gumstix Overo module \cite{Overo}, on which the OMAP processor resides, provides the capacity to run the Linux operating system with minimal physical dimension and power requirements. 
 
-The sensors selected include the Hokuyo UTM-30LX (Section \ref{Hokuyo}), a scanning laser range finder, a CMOS image sensor (Section \ref{caspa}), and an inertial navigation system (XSens MTIG, Section \ref{MTIG}). Apart from the camera, all these sensors are already used extensively at the LAAS and are supported with custom driver software developed at the LAB \cite{robotpkg}. Furthermore, these drivers have already been ported for use with the ARM processor architecture.
+The sensors selected include the Hokuyo UTM-30LX (Section \ref{Hokuyo}), a scanning laser range finder, a CMOS image sensor (Section \ref{caspa}), and an inertial navigation system (XSens MTIG, Section \ref{MTIG}). Apart from the camera, all these sensors are already used extensively at the LAAS and are supported with custom driver software \cite{robotpkg}. Furthermore, these drivers have already been ported for use with the ARM processor architecture.
 
-Insert picture of hokuyo and MTIG here
+\begin{figure}[htb]
+  \centering
+  \subfloat[Hokuyo UTM-30LX]{\label{fig:hokuyo}\includegraphics[width=50mm]{hokuyo.jpg}}                
+  \subfloat[XSens MTI-G]{\label{fig:mtig}\includegraphics[width=50mm]{MTIG_inhand.jpg}}
+  \caption{}
+  \label{fig:sensors}
+\end{figure}
 
 This payload equipment will reside on-board a low-cost aircraft controlled by the paparazzi autopilot system as detailed in Sections \ref{sec:mentorproject} and \ref{sec:paparazzi}
 
 \section{Airborne Processor}
 \label{sec:AirborneProcessor}
+
+In this section we present the miniature embedded computer present on our UAV.
 
 \subsection{Hardware}
 
@@ -70,8 +83,8 @@ The central component of the payload is the Gumstix Overo module (Figure \ref{fi
 
 \begin{figure}[htb]
   \centering
-  \subfloat[Module]{\label{fig:overo_mod}\includegraphics[width=80mm]{overo_in_hand.jpg}}                
-  \subfloat[With Summit carrier board]{\label{fig:overo_summit}\includegraphics[width=80mm]{overo_on_summit.jpg}}
+  \subfloat[Overo Module]{\label{fig:overo_mod}\includegraphics[width=80mm]{overo_in_hand.jpg}}                
+  \subfloat[Module on Summit carrier board]{\label{fig:overo_summit}\includegraphics[width=80mm]{overo_on_summit.jpg}}
   \caption{Gumstix Overo}
   \label{fig:overo}
 \end{figure}
@@ -79,9 +92,13 @@ The central component of the payload is the Gumstix Overo module (Figure \ref{fi
 
 \subsection{Software}
 
-The OMAP processor runs a full Linux operating system, cross compiled on a standard Linux host using a compilation system called OpenEmbedded. OE is capable of generating the necessary bootloader, linux kernel and modules, along with a root file system populated with all of the libraries and applications that might be needed to run our payload code. Configuration is done using bitbake recipes. With assistance from LAAS developers, bitbake recipes were created for the hokuyo and MTIG device libraries and are now available for the OMAP.
+The OMAP processor runs a full Linux operating system, cross compiled on a standard Linux host using a compilation system called OpenEmbedded. OE is capable of generating the necessary bootloader, linux kernel and modules, along with a root file system populated with all of the libraries and applications that might be needed to run our payload code. Configuration is done using bitbake recipes. With assistance from LAAS developers, bitbake recipes are available for the hokuyo and MTIG device libraries on the OMAP3 plaftorm. These libraries are compiled into ipkg packages that can be installed on the target using the opkg command. Our own custom C++ application links to these libraries and performs all of the acquisition and logging activities. The application is compiled using the paparazzi omap toolchain using a makefile integrated into the paparazzi build environment.
+
+Insert makefile, show make command, etc.
 
 \section{Airborne Sensors}
+
+This section details the miniature sensors carried aloft by our UAV. These include a laser scanner, a camera, and an inertial navigation system.
 
 \subsection{Hokuyo UTM-30LX}
 \label{Hokuyo}
@@ -153,18 +170,20 @@ Angle relative to track : (negligible relative to crab angle)
 \begin{equation} Angle_{scan\_to\_track} = \tan^{-1} \frac{Dist_x}{Dist_y} = \tan^{-1} \frac{0.125}{60} = 0.119^\circ
 \end{equation}
 
-This information is summarized in figure \ref{fig:geo1} and \ref{fig:geo2} below.
+This information is sumarized in figure \ref{fig:geo1} and \ref{fig:geo2} below.
 
 \begin{figure}[ht]
   \centering
-  \subfloat[Overview]{\label{fig:geo1}\includegraphics[width=70mm]{geo1.jpg}}                
-  \subfloat[Detail]{\label{fig:geo2}\includegraphics[width=70mm]{geo2.jpg}}
+  \subfloat[Overview]{\label{fig:geo1}\includegraphics[width=90mm]{geo1.jpg}}                
+  \subfloat[Detail]{\label{fig:geo2}\includegraphics[width=90mm]{geo2.jpg}}
   \caption{Scan Geometry}
   \label{fig:geometry}
 \end{figure}
 
 \section{Autopilot System}
 \label{sec:paparazzi}
+
+In this section we cover the background information on the open-source UAV platform known as paparazzi. We use this platform in our project to gain an autopilot and a ground station.
 
 \subsection{Paparazzi Description}
 
@@ -195,53 +214,22 @@ A typical useful hardware and software system must wrestle with the complexity t
 
 Like all active complex configurable systems, the challenge with paparazzi is its steep learning curve and rapid and continuous evolution. Tailoring the system for a specific application is not difficult because paparazzi requires extensive modifications, but because much of the system has to be mastered before a clear idea emerges of how and where the modifications should be made. Since documentation is limited to unstructured wiki pages and due to a complete lack in code comments, a user is essentially forced to become a developer and to dive deep into the system or resort to hacks to limit the time invested. Beyond the obvious drawbacks of the later option, is the fact that such hacks are only useful in the very short-term. Since the hacks will not be able to be merged with the software base, as the base evolves the hacks will continuously break and require constant effort to keep them working. This pressure is the reason why many users have forked the paparazzi code, added their extensive application-specific modifications without staying up to date, to end up with a system that is nearly un-mergeable with the evolved paparazzi code base. The bottom-line is that tailoring paparazzi for a project should be approached in one of two ways depending on the objectives. One, if the intent is to produce a one-off demo and future reuse is not a consideration, a fork can be considered along with quick hacks. If the continuous evolution of the application is envisioned or if sharing the capabilities with other paparazzi users is desired, the time to properly integrate customizations and continuously maintain them needs to be anticipated and allocated. This is the same sort of commitment already in place for the LAAS' openrobots software.
 
-All this to say that considerable time is required integrate paparazzi in this project and that new team members will not able to contribute for the few months it will take to get to know the system.
-
-\section{Challenges}
-
-\subsection{Weight and Size}
-
-The most convenient UAVs are those in the 1 meter wingspan range and made of foam, as these are easy to transport, repair, and pose very little security risk. But their limited payload capabilities (300 grams or less) restrict their practical uses to payloads that can be highly miniaturized. In our case, where a payload capacity of 600 grams is necessary, staying in this 1-meter regime would be possible only with the design of a custom aircraft. With the Mentor airframe, transport and repair options are still manageable, but the high-speed necessary to generate the required lift (anticipated 30+ m/s), combined with a 2.5 kg overall weight, also combined with the low altitude necessary for lidar acquisition, means that a crash is more likely due to lower reaction times and proximity to obstacles, and the increased momentum will have more grave consequences. The solution would be an airframe and wing design tailored for low-speed flight. This reduces risk and increases the density of the LIDAR-acquired point clouds. The drawback to such a design is the reduced capacity to fly in strong winds and a reduced range. The design of this aircraft would include a number of other benefits over the current craft: 
-
-\begin{itemize}
- \item A payload bay integrated in the fuselage for reduced drag and increased protection in a crash
- \item Increase in wing area to permit slow flight
- \item Reduced wing span for easy of transport
- \item Airfoil design optimized our needs : Difficult to stall and always stays close to the designed airspeed *
-\end{itemize}
-
-(*Note: When the aircraft attempts to gain speed in a dive, the airfoil generates additional drag making the accumulation of airspeed difficult.)
-
-Particularly in a lab setting, the major difference with the development and deployment of UAVs is that a generic kitchen sink approach is no longer possible without a large support team and an immense budget. When the research emphasis is on algorithm development, the most useful and practical research UGVs are the ones that resemble a desktop development environment (x86 PC, for example), can house a plethora or sensing and communications devices, and can be easily reconfigured. Due to these goals, UGVs are typically 5 to 100 kilograms. In the UAV context, 5 kg is already a very substantial aircraft. The conclusion is that expectations for small lab UAVs should be that each can only be good for exploring a few ideas after which it will either need to be abandoned or completely reworked. And since it's just not possible to halt an aircraft at a moments notice, crashes are more likely and it should be expected to have to rebuild periodically or build multiple aircraft up-front to avoid long reconstruction delays.
-
-\subsection{Synchronization of Sensors}
- 
-Currently there is loose synchronization based on timestamps added to the scan and INS datastreams at the application level. Tighter synchronization is planned in the future by time stamping at a lower level (i.e. in the device drivers) and by hardware sync between the scanner and the camera. The pulse output generated by the scanner at the start of each revolution will be used to trigger the exposure of a camera frame using it's exposure input. This input will be available on the custom camera design currently in development at the LAAS.
-
-\subsection{Other Challenges}
-
-\begin{itemize}
- \item Limited LIDAR range and resolution between scan lines at high aircraft velocities.
- \item Maintaining near-constant Above-Ground-Level (AGL) altitude to stay within the 30m or less Lidar range.
- \item Detecting obstacles in the flight path to avoid tree tops, for example.
- \item Accurate attitude and position estimates needed for accurate data correction and geo-referencing.
-\end{itemize}
+All this to say that considerable time is required integrate paparazzi in any project and that new team members will not able to contribute for the few months it takes to get to know the system.
 
 \chapter{Ground-based Testing}
 
-In an attempt to gain some practical experience and flesh out any limitations of the hokuyo device in an outside daylight environment, a ground-based test was carried out.
+In an attempt to gain some practical experience, flesh out any limitations, and begin developing data processing software, a simple ground-based test was carried out.
 
 \section{Test Description}
 
 \begin{figure}[ht]
  \centering
  \includegraphics[width=6cm]{./Bikesciencepackage.jpg}
- % Bikesciencepackage.jpg: 180x179 pixel, 72dpi, 6.35x6.31 cm, bb=0 0 180 179
  \caption{Bike Test Vehicle}
  \label{fig:bike}
 \end{figure}
 
-The hokuyo sensor along with the MTIG was mounted on boom attached to a standard bicycle as show in Figure \ref{fig:bike}. While the bicycle traveled through a residential neighborhood a small laptop acquired the data to files. These files show that on a sunny day the hokuyo can detect at a light-colored perpendicular surface up to 20 meters away. It remains to be determined what maximum distances can be reliably detected on surfaces such as dirt and grass and at angles approaching 30 to 45 degrees from perpendicular, as will often be the case for our UAV.
+The hokuyo sensor and the MTIG were mounted on boom attached to a standard bicycle as show in Figure \ref{fig:bike}. While the bicycle traveled through a residential neighborhood, a small laptop logged the sensor data to files. These files show that on a sunny day the hokuyo can detect at a light-colored perpendicular surface up to 20 meters away. UAV testing (discussed later in Section \ref{flight_tests}) will be necessary to determine performance on surfaces such as dirt and grass and at angles approaching 30 to 45 degrees from perpendicular.
 
 \section{Output Sample}
 
@@ -254,11 +242,15 @@ A composite image is generated including a number of text data such as the MTIG 
  \label{fig:plotlogsample}
 \end{figure}
 
-The test showed the hokuyo device can be used in an exterior setting and that distances of up to 16 meters can be detected even in bright sunlight if the reflecting surface is perpendicular and of a light color.
+Ground testing showed the hokuyo device can be used in an exterior setting and that distances of up to 16 meters can be detected even in bright sunlight if the reflecting surface is perpendicular and of a light color.
 
-\section{Next Steps}
+\section{Post Processing}
 
 The next step is to represent the laser scans in a 3D environment, creating a Digital Terrain Model and representing graphically in an openGL tool such as GDHE. This process can be accomplished with the LAAS tools robotpkg and Jafar, and I am still trying to learn these so this tasks is not yet complete. To become accustomed to these tools and understand the methods behind them, I've developed various applications to work through data acquisition, generation, and processing. The code is available freely online \cite{laserhawkgit}. Some screenshots of these applications are shown below in Figure \ref{fig:mkvirt} and \ref{fig:hoku2gdhe}.
+
+\subsection{Virtual Terrain Generation}
+
+Using the PERL language, I created software that could create sensor logs using a virtual environment. The environment includes a bounded surface that defines the terrain togography and camera orientation. The model can be defined as piece-wise functions or by a greyscale bitmap. An example terrain is shown in Figure \ref{fig:mkvirt}. Lighter colored pixels have higher elevation than darker ones.
 
 \begin{figure}[ht]
  \centering
@@ -267,6 +259,14 @@ The next step is to represent the laser scans in a 3D environment, creating a Di
  \caption{Virtual terrain simulator}
  \label{fig:mkvirt}
 \end{figure}
+
+The virtual terrain surface is ``scanned'' along a line by using a raycasting method. Essentially, itterating through the scan angles one step of resolution at a time, the distance between the ``camera`` and the surface is calculated. The calculation is performed by propagating the ray until intersection is detected, and uses some trigonometry to arrive at a final distance (See Figure x).
+
+Insert calculation figure here.
+
+After acquisition of the virtual scan lines into log files, 3D plotting tools can be used to visualize them (Figure \ref{fig:hoku2gdhe})
+
+\subsection{3D Plots of Acquired Virtual Terrain Data}
 
 \begin{figure}[ht]
  \centering
@@ -284,7 +284,7 @@ As explained above, the immediate goal is to outfit a Multiplex Mentor aircraft 
 
 \section{Airframe}
 
-The aircraft is a standard three-axis electric R/C model and is displayed in Figure \ref{fig:mentor}. It uses two ailerons, an elevator, and a rudder for control surfaces along with a 40A speed controller for thrust control.
+The aircraft is a standard three-axis electric R/C model and is displayed in Figure \ref{fig:mentor}. It uses two ailerons, an elevator, and a rudder for control surfaces along with a fourth channel for thrust control.
 
 \begin{figure}[ht]
  \centering
@@ -294,13 +294,38 @@ The aircraft is a standard three-axis electric R/C model and is displayed in Fig
  \label{fig:mentor}
 \end{figure}
 
+The major aircraft components are listed below:
+
+\begin{itemize}
+ \item Motor : AXI 2820 Gold Brushless DC
+ \item Propellor : APC 10 x 8 ? 
+ \item Electronic Speed Controller : 80 Amp Brushless ?
+ \item Batteries : 3 series elements Lithium Polymer
+ \item RC Receiver : ?
+ \item RC Transmitter : ? 
+ \item Autopilot: Tiny v1.1 with Ublox LEA-4H GPS receiver
+ \item Attitude Sensors : Infrared (6 orthogonal pixels paparazzi analog design)
+\end{itemize}
+
+Power for the RC Servos is supplied by an stand-alone BEC (Battery Elimination Circuit) instead of using the power provided by the autopilot board. This is done to elminate the possibility of power supply rail fluctuations due to the intermittent high current loads generated by the servos. The fluctuations can lead to the autopilot's processor rebooting in flight which can have dire consequences.
+
+Insert close up of autopilot board in airframe.
+
+Insert close up of IR sensors.
+
+\subsection{Airframe Parameters}
+
+The airframe is characterized by a number of traits that must be provided to the autopilot. These characteristics such as minimum and maximum speed, control loop gains, servo ordering and positions, etc, are listed in an xml configuration file in the Appendix (\ref{appendix_a}). Much of the initial flight testing is aimed at finding adequate gains to achieve tight control and navigation while maintaining stability in a variety of outdoor conditions.
+
+Insert Mentor aiframe xml file in Appendix.
+
 \section{Payload}
 
-The pod is built using typical model construction techniques. As seen in Figure \ref{fig:payload}, a plywood frame houses the various components and a glass-fiber reinforced foam cover provides a streamlined shape and protects the pod contents in the event of a crash. The payload weight is 650 grams and will require the Mentor to fly at high speed to generate the necessary lift.
+The payload pod is built using typical model construction techniques. As seen in Figure \ref{fig:payload}, a plywood frame houses the various components and a glass-fiber reinforced foam cover provides a streamlined shape and protects the pod contents in the event of a crash. The payload is designed for quick insertion and removal from the aircraft, with a single magnetically-held carbon rob used to secure it to the craft. The payload weight is 650 grams and requires the Mentor to fly at higher than normal cruising speeds to generate the necessary lift. 
 
 \begin{figure}[ht]
  \centering
- \includegraphics[width=10cm]{./Mentor1_payload2.jpg}
+ \includegraphics[width=12cm]{./Mentor1_payload2.jpg}
  % Mentor1_payload2.jpg: 3072x2304 pixel, 180dpi, 43.35x32.51 cm, bb=0 0 1229 922
  \caption{Completed Payload Pod}
  \label{fig:payload}
@@ -325,12 +350,28 @@ The weight of the individual components are listed in Figure \ref{fig:weight1} a
 \begin{figure}[ht]
   \centering
   \subfloat[Payload]{\label{fig:weight1}\includegraphics[width=70mm]{weights.png}}                
-  \subfloat[Overall]{\label{fig:weight2}\includegraphics[width=70mm]{weights_overall.png}}
-  \caption{Weights}
+  \subfloat[Overall]{\label{fig:weight2}\includegraphics[width=105mm]{weights_overall.png}}
+  \caption{Aircraft Weights}
   \label{fig:weights}
 \end{figure} 
 
-\chapter{Results}
+\section{Cartography Flight Plan}
+
+To request the UAV to fly in parallel tracks above a region of interest, we created a custom flight plan and merged it into the paparazzi source code base. The function allows a region of interest to be defined either before or in flight by the GCS operator by defining three waypoints. These waypoints define a rectangle and the autopilot calculates two sets of parrallel tracks, each set perpendicular to the other. The aircraft then flies along these tracks as best as possible given wind conditions and other challenges. Figure \ref{fig:gridcarto} shows the cartography function in action. In the figure, the aircraft can be seen near the center of the image traversing the current ground track highlighted in green. The aircraft track in blue shows the UAVs trajectory since the start of the pattern. The region of interest is defined by the waypoints named S1, S2, S3, and S4, and the tracks within the region are all straight lines.
+
+\begin{figure}[ht]
+ \centering
+ \includegraphics[width=10cm]{pprz_cartography.png}
+ \caption{Grid Cartography Flight Plan}
+ \label{fig:gridcarto}
+\end{figure}
+
+The current cartography function assumes a constant altitude during the entire pattern. Due to the limited laser scanner range of 15-20 meters, this method would only work in relatively flat terrains and without large (>10 meters) obstacles.
+
+\chapter{Flight Testing}
+\label{flight_tests}
+
+Flight testing was performed at a small model airfield on the southern outskirts of Toulouse. The site is situation in the midst of wheat fields. There is a small covered work area on site and a row of medium-sized trees. Less than 200 meters away is an irrigation ditch, a road bridge, and some small warehouse buildings.
 
 \begin{figure}[ht]
  \centering
@@ -341,19 +382,45 @@ The weight of the individual components are listed in Figure \ref{fig:weight1} a
 \end{figure}
 
 
-
 \chapter{Challenges}
 
 \subsection{Hokuyo Lidar performance}
 
-- limited lidar range
-- limited lidar driver throughput
+\subsubsection{Limited lidar range}
+
+Using test flight data, the ability of the lidar sensor to detect the distance to the ground surface was determined by plotting the number of echoes detected for varying aircraft altitudes. The resulting plot as seen in Figure \ref{fig:lidar_perf} shows the inability to detect all echoes starts at an altitude of 9 meters. The number of echoes received in the 90 degree scan region should be 360 as the resolution is four points per degree. Assuming the aircraft is horizontal, the 360 points represent the terrain profile along the scan path whose length is 2x the altitude. So, at 10 meters altitude we are imaging 20 meter swaths (Figure \ref{fig:lidar_scan}). At 15 meters altitude, due to the sensor range limitations, the swaths imaged are much narrower than expected, in the 6 to 9 meter range (Figure \ref{fig:lidar_scan2}).
+
+This test was done in a favorably cloudy day. Performance on a clear day is presumed to be inferior.
+
+\begin{figure}[ht]
+ \centering
+ \includegraphics[width=12cm]{scanpt_v_alt.png}
+ \caption{Lidar Range Performance in Flight}
+ \label{fig:lidar_perf}
+\end{figure}
+
+
+\begin{figure}[ht]
+ \centering
+ \includegraphics[width=12cm]{scan603.png}
+ \caption{Typical Lidar Scan}
+ \label{fig:lidar_scan1}
+\end{figure}
+
+\begin{figure}[ht]
+ \centering
+ \includegraphics[width=12cm]{scan607.png}
+ \caption{Typical Lidar Scan 2}
+ \label{fig:lidar_scan2}
+\end{figure}
+
+\subsubsection{Lidar driver limitations}
+
+Transferring the 1081 scan points at 40 scans per second requires considerable CPU time by the scanner driver. If the system is busy with other tasks such as writing to logs, or the compression and transfer of data to the ground station, the processor can be preempted and scans are lost as there is no scan buffering. Also, the scan intensity data is available but it's use leads to a 3-fold decrease in the effective scan rate and is therefor not usable. Finally, a multi-echo feature in the driver appears to only be possible with a different Hokuyo product.
 
 \subsection{GPS}
 
-erratic MTIG position estimates
-
-Comparison of GPS track recorded with autopilot and payload
+Initial testing showed an issue with the buffering of MTIG data. Much of the data was in clumps and the GPS position did not closely follow what was provided by the autopilot. Figure \ref{fig:track_comp} shows a comparison of GPS track recorded with the autopilot and the payload.
 
 \begin{figure}[ht]
   \centering
@@ -364,9 +431,38 @@ Comparison of GPS track recorded with autopilot and payload
   \label{fig:track_comp}
 \end{figure} 
 
-\chapter{Conclusion}
+After some time working with the device driver library it was discovered to be a problem in its use. The problem caused much of the sent data to be lost, the timestamps to not reflect correct acquisition time, and high CPU utilization. 
 
+\subsection{Time Synchronization of Sensors}
+ 
+Currently there is loose time synchronization based on timestamps added to the scan and INS datastreams at the application level. Tighter synchronization is planned in the future by time stamping at a lower level (i.e. in the device drivers) and by hardware sync between the scanner and the camera. The pulse output generated by the scanner at the start of each revolution could be used to trigger the exposure of a camera frame using it's exposure input. This input will be available on the custom camera design currently in development at the LAAS.
 
+\subsection{Other Challenges}
+
+\begin{itemize}
+ \item Limited LIDAR resolution between scan lines at high aircraft velocities.
+ \item Maintaining constant Above-Ground-Level (AGL) altitude in varying terrain to stay within the 10-15 m LIDAR range.
+ \item Detecting obstacles in the flight path to avoid tree tops, for example.
+ \item Accurate attitude and position estimates needed for accurate data correction and geo-referencing.
+ \item Limited range on R/C Link (150 m max for low altitudes which is less than ideal)
+ \item Limited autonomy due to limited battery capacity (10-12 minutes maximum)
+ \item Limited capacity of autopilot to closely follow flight plan tracks (even straight lines) in fluctuating or high winds
+ \item Frequent hardware failures due to the low-cost nature of RC products. Servos often die unexpectedly, intermittent solder joints on IR sensors, etc.
+\end{itemize}
+
+\chapter{Conclusion and Future Direction}
+
+This project showed that it is possible to fly the requested sensors on an autonomous aircraft. The Lidar was capable of scanning in daylight conditions and this data could be recorded along with relatively acurrate attitude and position estimates.
+
+Unfortunately, the limited range of the sensors and autonomy of the aircraft render the UAV useful for only a few potential scenarios. The environment to be scanned must not have elevations that vary more than a few meters and obstacles must also be only a few meters in size. This lends itself well in looking for ditches and roads in a typical desert or agricultural landscapes, but not at all for wooded or urban environments.
+
+Another drawback with the project aircraft was that velocities in the 15 to 20 m/s range and a maximum lidar scan rate of 40 Hz results in large unmapped areas. Future investigations could focus on fusing camera data with the lidar scan data to potentialy generate traversability estimates. For example, a downed tree trunk might appear as a round or oval feature in a couple of laser scan lines, and the camera data might show this is a continous obstacle and define its extents.
+
+By using the laser data to regulate the aircraft's altitude, it would be possible to follow gently changing terrain elevations. Another possibility worth investigation is the deflection of part or parts of the hokuyo's 270 degree scanning range towards the front of the aircraft. These scan portions could be used to detect obstacles and instruct the autopilot to fly over or around them, although the limited lidar range and high aircraft velocities would seriously limit this capability.
+
+By using a different lidar scanner or improving the current driver performance, it would also be interesting to be able to receive intesity and multi-echo data. This data is useful for constructing terrain models in the presence of trees with leaves, for example.
+
+Finally, due to the effective 10m lidar range, to stay safely above the terrain and achieve higher scan density, moving to either a slow flying airplane (5-7 m/s) or a quadrotor is required. Designs for these types of craft with payload capacity in the 700 gram range could be constructed at minimal cost.
 
 \begin{thebibliography}{9}
 
@@ -467,5 +563,278 @@ E. Malis and M. Vargas. Deeper understanding of the homography decomposition for
 N. Vandapel, R. R. Donamukkala, and M. Heber. Quality assessment of traversability maps from aerial lidar data for an unmanned ground vehicle. IEEE Int'l Conf Robots and Systems IROS 2003, pages 305-310, October 2003.
 
 \end{thebibliography}
+
+\appendix
+\appendixpage
+\addappheadtotoc
+
+\chapter{Airframe Configuration}
+
+\definecolor{listinggray}{gray}{0.9}
+\definecolor{lbcolor}{rgb}{0.9,0.9,0.9}
+
+\lstset{
+  basicstyle=40pt,       % the size of the fonts that are used for the code
+  numbersep=25pt,
+  numbers=left,
+  backgroundcolor=\color{lbcolor},
+  tabsize=4,
+  rulecolor=,
+  language=XML,
+  basicstyle=\scriptsize,
+  upquote=true,
+  aboveskip={1.5\baselineskip},
+  columns=fixed,
+  showstringspaces=false,
+  extendedchars=true,
+  breaklines=true,
+  prebreak = \raisebox{0ex}[0ex][0ex]{\ensuremath{\hookleftarrow}},
+  frame=single,
+  showtabs=false,
+  showspaces=false,
+  showstringspaces=false,
+  identifierstyle=\ttfamily,
+  keywordstyle=\color[rgb]{0,0,1},
+  commentstyle=\color[rgb]{0.133,0.545,0.133},
+  stringstyle=\color[rgb]{0.627,0.126,0.941},
+}
+
+\lstset{caption=Airframe Configuration}
+
+\begin{lstlisting}
+<!DOCTYPE airframe SYSTEM "../airframe.dtd">
+
+
+<airframe name="Mentor Laas N1 Tiny 1.1">
+
+
+  <firmware name="fixedwing">
+    <target name="sim" 			board="pc">
+      <define name="AGR_CLIMB" />
+      <define name="LOITER_TRIM" />
+      <define name="ALT_KALMAN" />
+    </target>
+    <target name="ap" 			board="tiny_1.1">
+      <define name="AGR_CLIMB" />
+      <define name="LOITER_TRIM" />
+      <define name="ALT_KALMAN" />
+    </target>
+
+    <subsystem name="radio_control" type="ppm"/>
+
+    <!-- Communication -->
+    <subsystem name="telemetry" 	type="transparent">
+      <configure name="MODEM_BAUD" 		value="B57600"/>
+    </subsystem>
+
+    <subsystem name="control"/>
+    <!-- Sensors -->
+    <subsystem name="attitude" 		type="infrared">
+      <configure name="ADC_IR1" value="ADC_1"/>
+      <configure name="ADC_IR2" value="ADC_0"/>
+      <configure name="ADC_IR_TOP" value="ADC_3"/>
+    </subsystem>
+    <subsystem name="gps" 		    type="ublox_lea4p"/>
+    <subsystem name="navigation"/>
+
+  </firmware>
+
+  <firmware name="setup">
+    <target name="tunnel"           board="tiny_1.1" />
+    <target name="setup_actuators"  board="tiny_1.1" />
+  </firmware>
+
+  <modules>
+    <load name="cartography.xml"/>
+    <load name="adc_generic.xml">
+      <configure name="ADC_CHANNEL_GENERIC1" value="ADC_2"/>
+      <configure name="ADC_CHANNEL_GENERIC2" value="ADC_4"/>
+    </load>
+  </modules>
+
+<!-- commands section -->
+  <servos>
+    <servo name="THROTTLE"   no="0" min="1200" neutral="1200" max="2000"/>
+    <servo name="AILERON_LEFT"  no="3" min="1900" neutral="1550" max="1100"/>
+    <servo name="AILERON_RIGHT" no="1" min="1900" neutral="1520" max="1100"/>
+    <servo name="RUDDER" no="4" min="1850" neutral="1500" max="1150"/>
+    <servo name="ELEVATOR" no="5" min="2200" neutral="1400" max="1000"/>
+  </servos>
+
+  <commands>
+    <axis name="THROTTLE" failsafe_value="0"/>
+    <axis name="ROLL"     failsafe_value="0"/>
+    <axis name="PITCH"    failsafe_value="0"/>
+    <axis name="YAW"      failsafe_value="0"/>
+  </commands>
+
+  <rc_commands>
+    <set command="THROTTLE" value="@THROTTLE"/>
+    <set command="ROLL"     value="@ROLL"/>
+    <set command="PITCH"    value="@PITCH"/>
+    <set command="YAW"    value="@YAW"/>
+  </rc_commands>
+
+  <section name="MIXER">
+    <define name="AILERON_DIFF" value="0.66"/>
+    <define name="COMBI_SWITCH" value="1.0"/>
+  </section>
+
+  <command_laws>
+    <set servo="THROTTLE"           value="@THROTTLE"/>
+    <set servo="ELEVATOR" value="@PITCH"/>
+    <set servo="RUDDER" value="@YAW + @ROLL*COMBI_SWITCH"/>
+
+    <let var="roll" value="@ROLL"/>
+    <set servo="AILERON_LEFT" value="($roll > 0 ? 1 : AILERON_DIFF) * $roll"/>
+    <set servo="AILERON_RIGHT" value="($roll > 0 ? AILERON_DIFF : 1) * $roll"/>
+  </command_laws>
+
+  <section name="AUTO1" prefix="AUTO1_">
+    <define name="MAX_ROLL" value="0.6"/>
+    <define name="MAX_PITCH" value="0.6"/>
+  </section>
+
+  <section name="INFRARED" prefix="IR_">
+    <define name="ROLL_NEUTRAL_DEFAULT" value="-2.6" unit="deg"/>
+    <define name="PITCH_NEUTRAL_DEFAULT" value="0.6" unit="deg"/>
+
+    <define name="HORIZ_SENSOR_TILTED" value="1"/>
+    <define name="IR2_SIGN" value="-1"/>
+    <define name="TOP_SIGN" value="-1"/>
+
+    <!--linear name="RollOfIrs" arity="2" coeff1="0.7" coeff2="0.7"/>
+    <linear name="PitchOfIrs" arity="2" coeff1="-0.7" coeff2="0.7"/>
+    <linear name="TopOfIr" arity="1" coeff1="1.5"/-->
+
+    <define name="ADC_IR1_NEUTRAL" value="507"/>
+    <define name="ADC_IR2_NEUTRAL" value="509"/>
+    <define name="ADC_TOP_NEUTRAL" value="515"/>
+
+    <define name="LATERAL_CORRECTION" value="1."/>
+    <define name="LONGITUDINAL_CORRECTION" value="1."/>
+    <define name="VERTICAL_CORRECTION" value="1."/>
+  </section>
+
+  <section name="BAT">
+    <define name="MILLIAMP_AT_FULL_THROTTLE" value="40000"/>
+    <define name="CATASTROPHIC_BAT_LEVEL" value="9.3" unit="V"/>
+  </section>
+
+  <section name="MISC">
+    <define name="NOMINAL_AIRSPEED" value="18." unit="m/s"/>
+    <define name="MINIMUM_AIRSPEED" value="11." unit="m/s"/>
+    <define name="MAXIMUM_AIRSPEED" value="33." unit="m/s"/>
+    <define name="CARROT" value="3." unit="s"/>
+    <define name="KILL_MODE_DISTANCE" value="(1.5*MAX_DIST_FROM_HOME)"/>
+<!--    <define name="XBEE_INIT" value="\"ATPL2\rATRN1\rATTT80\rATBD6\rATWR\r\""/> -->
+    <define name="XBEE_INIT" value="\"ATPL2\rATRN1\rATTT80\r\""/>
+<!--    <define name="NO_XBEE_API_INIT" value="TRUE"/> -->
+    <define name="ALT_KALMAN_ENABLED" value="TRUE"/>
+    <define name="TRIGGER_DELAY" value="1."/>
+    <define name="DEFAULT_CIRCLE_RADIUS" value="80."/>
+  </section>
+
+  <section name="VERTICAL CONTROL" prefix="V_CTL_">
+
+    <define name="POWER_CTL_BAT_NOMINAL" value="11.1" unit="volt"/>
+    <!-- outer loop proportional gain -->
+    <define name="ALTITUDE_PGAIN" value="-0.15"/>
+    <!-- outer loop saturation -->
+    <define name="ALTITUDE_MAX_CLIMB" value="2."/>
+
+    <!-- auto throttle inner loop -->
+    <define name="AUTO_THROTTLE_NOMINAL_CRUISE_THROTTLE" value="0.55"/>
+    <define name="AUTO_THROTTLE_MIN_CRUISE_THROTTLE" value="0.30"/>
+    <define name="AUTO_THROTTLE_MAX_CRUISE_THROTTLE" value="0.90"/>
+    <define name="AUTO_THROTTLE_LOITER_TRIM" value="0"/>
+    <define name="AUTO_THROTTLE_DASH_TRIM" value="0"/>
+    <define name="AUTO_THROTTLE_CLIMB_THROTTLE_INCREMENT" value="0.05" unit="%/(m/s)"/>
+    <define name="AUTO_THROTTLE_PGAIN" value="-0.03"/>
+    <define name="AUTO_THROTTLE_IGAIN" value="0.05"/>
+    <define name="AUTO_THROTTLE_PITCH_OF_VZ_PGAIN" value="0.03"/>
+    
+    <!-- auto pitch inner loop -->
+    <define name="AUTO_PITCH_PGAIN" value="-0.065"/>
+    <define name="AUTO_PITCH_IGAIN" value="0.15"/>
+    <define name="AUTO_PITCH_MAX_PITCH" value="0.35"/>
+    <define name="AUTO_PITCH_MIN_PITCH" value="-0.35"/>
+
+    <define name="THROTTLE_SLEW" value="0.05"/>
+
+  </section>
+
+  <section name="HORIZONTAL CONTROL" prefix="H_CTL_">
+    <define name="COURSE_PGAIN" value="-1."/>
+    <define name="ROLL_MAX_SETPOINT" value="0.6" unit="radians"/>
+    <define name="PITCH_MAX_SETPOINT" value="0.5" unit="radians"/>
+    <define name="PITCH_MIN_SETPOINT" value="-0.5" unit="radians"/>
+
+
+    <define name="ROLL_ATTITUDE_GAIN" value="-10000"/>
+    <define name="AILERON_OF_THROTTLE" value="0.0"/>
+    <define name="PITCH_PGAIN" value="-12000."/>
+    <define name="PITCH_DGAIN" value="1.5"/>
+    <define name="ELEVATOR_OF_ROLL" value="1250"/>
+  </section>
+
+  <section name="NAV">
+    <define name="NAV_PITCH" value="0."/>
+    <define name="NAV_GLIDE_PITCH_TRIM" value="0"/>
+    <define name="NAV_GROUND_SPEED_PGAIN" value="-0.015"/>
+    <define name="NAV_FOLLOW_PGAIN" value="-0.05"/>
+  </section>
+
+  <section name="FORMATION" prefix="FORM_">
+    <define name="CARROT" value="3." unit="s"/> <!-- carrot distance for followers -->
+    <define name="POS_PGAIN" value="0.02"/> <!-- coef on position error -->
+    <define name="SPEED_PGAIN" value="0.4"/> <!-- coef on speed error -->
+    <define name="COURSE_PGAIN" value="0.8"/> <!-- coef on course error (override course pgain for followers) -->
+    <define name="ALTITUDE_PGAIN" value="0.1"/> <!-- coef on altitude error -->
+    <define name="PROX" value="60." unit="m"/> <!-- proximity distance -->
+    <define name="MODE" value="0"/> <!-- mode 0 = global, 1 = local -->
+  </section>
+
+  <section name="TCAS" prefix="TCAS_">
+    <define name="TAU_TA" value="10." unit="s"/> <!-- traffic advisory -->
+    <define name="TAU_RA" value="6." unit="s"/> <!-- resolution advisory -->
+    <define name="ALIM" value="15." unit="m"/> <!-- altitude limitation -->
+    <define name="DT_MAX" value="2000" unit="ms"/> <!-- lost comm or timeout -->
+  </section>
+
+  <section name="POTENTIAL">
+    <define name="FORCE_POS_GAIN" value="50"/>
+    <define name="FORCE_SPEED_GAIN" value="1"/>
+    <define name="FORCE_CLIMB_GAIN" value="8"/>
+  </section>
+
+  <section name="AGGRESSIVE" prefix="AGR_">
+    <define name="BLEND_START" value="20"/><!-- Altitude Error to Initiate Aggressive Climb CANNOT BE ZERO!!-->
+    <define name="BLEND_END" value="10"/><!-- Altitude Error to Blend Aggressive to Regular Climb Modes  CANNOT BE ZERO!!-->
+    <define name="CLIMB_THROTTLE" value="0.8"/><!-- Gaz for Aggressive Climb -->
+    <define name="CLIMB_PITCH" value="0.3"/><!-- Pitch for Aggressive Climb -->
+    <define name="DESCENT_THROTTLE" value="0.1"/><!-- Gaz for Aggressive Decent -->
+    <define name="DESCENT_PITCH" value="-0.25"/><!-- Pitch for Aggressive Decent -->
+    <define name="CLIMB_NAV_RATIO" value="0.8"/><!-- Percent Navigation for Altitude Error Equal to Start Altitude -->
+    <define name="DESCENT_NAV_RATIO" value="1.0"/>
+  </section>
+
+  <section name="FAILSAFE" prefix="FAILSAFE_">
+    <define name="DELAY_WITHOUT_GPS" value="1" unit="s"/>
+    <define name="DEFAULT_THROTTLE" value="0.3" unit="%"/>
+    <define name="DEFAULT_ROLL" value="0.3" unit="rad"/>
+    <define name="DEFAULT_PITCH" value="0.5" unit="rad"/>
+    <define name="HOME_RADIUS" value="100" unit="m"/>
+  </section>
+
+  <section name="SIMU">
+    <define name="YAW_RESPONSE_FACTOR" value="1."/>
+  </section>
+
+ <makefile>
+
+  </makefile>
+</airframe>
+\end{lstlisting}
 
 \end{document}          
