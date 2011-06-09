@@ -13,17 +13,57 @@
 \usepackage{color}
 \usepackage{appendix}
 
+\usepackage[pdftex]{graphicx}
+
+\newcommand{\HRule}{\rule{\linewidth}{0.5mm}}
+
 \renewcommand{\topfraction}{.9}
 \renewcommand{\bottomfraction}{.9}
 \renewcommand{\textfraction}{.1}
 
 \graphicspath{{./}{images/}}
 
-\title{Performance Evaluation of a mini UAV LIDAR for Terrain Traversability Assessment}
-\author{Paul D. Cox, Intern at LAAS-CNRS, 5AE INSA Toulouse}
+%\title{Performance Evaluation of a mini UAV LIDAR for Terrain Traversability Assessment}
+%\author{Paul D. Cox, Intern at LAAS-CNRS, 5AE INSA Toulouse}
 
 \begin{document}
-\maketitle
+
+\begin{titlepage}
+
+\begin{center}
+
+\includegraphics[width=18cm]{title_top.png}
+
+% Title
+\HRule \\[0.4cm]
+{ \huge \bfseries Performance Evaluation of a mini UAV LIDAR for Terrain Traversability Assessment}\\[0.4cm]
+
+\HRule \\[1.5cm]
+
+% Author and supervisor
+\begin{minipage}{0.4\textwidth}
+\begin{flushleft} \large
+\emph{Author:}\\
+Paul \textsc{Cox} Intern at LAAS-CNRS, 5AE INSA Toulouse
+\end{flushleft}
+\end{minipage}
+\begin{minipage}{0.4\textwidth}
+\begin{flushright} \large
+\emph{Supervisor:} \\
+Bertrand \textsc{Vandeportaele}
+\end{flushright}
+\end{minipage}
+
+\vfill
+
+% Bottom of the page
+{\large \today}
+
+\end{center}
+
+%\maketitle
+\end{titlepage}
+
 
 \tableofcontents
 \newpage
