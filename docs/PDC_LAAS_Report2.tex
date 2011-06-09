@@ -84,7 +84,7 @@ In this section we present the miniature embedded computer present on our UAV.
 
 \subsection{Hardware}
 
-The central component of the payload is the Gumstix Overo module (Figure \ref{fig:overo_mod}). The module is used along with a carrier board. The carrier board selected for this project is the Summit product from Gumstix (Figure \ref{fig:overo_summit}). Together, the module and the carrier board contain the TI OMAP proccessor along with wifi, ethernet, bluetooth transceivers, and a convenient microSD socket. The TI OMAP System On Chip (SOC) processor incorporates a 600MHz 32-bit ARM Cortex-A8 core, a DSP, and many peripherals including UART, I2C, SPI, SD, USB, and a dedicated camera interface. The package-on-package (POP) configuration, where the SDRAM and NAND memory are stacked directly on top of the processor saves valuable space and weight and decreases EMI/EMC issues. While the camera interface and the DSP provide for future research capabilities, in the near term the important interface is USB Host as this will be used to receive laser scanner data along with other serial-based communications (Intertial Navigation System and ground communication).
+The central component of the payload is the Gumstix Overo module (Figure \ref{fig:overo_mod}). The module is used along with a carrier board. The carrier board selected for this project is the Summit product from Gumstix (Figure \ref{fig:overo_summit}). Together, the module and the carrier board contain the TI OMAP processor along with wifi, ethernet, bluetooth transceivers, and a convenient micro SD socket. The TI OMAP System On Chip (SOC) processor incorporates a 600MHz 32-bit ARM Cortex-A8 core, a DSP, and many peripherals including UART, I2C, SPI, SD, USB, and a dedicated camera interface. The package-on-package (POP) configuration, where the SDRAM and NAND memory are stacked directly on top of the processor saves valuable space and weight and decreases EMI/EMC issues. While the camera interface and the DSP provide for future research capabilities, in the near term the important interface is USB Host as this will be used to receive laser scanner data along with other serial-based communications (Inertial Navigation System, ground communication modem, and autopilot communication).
 
 \begin{figure}[htb]
   \centering
@@ -145,7 +145,7 @@ nominal UAV flight velocity : 20-30 m/s
 
 nominal UAV flight height AGL : 30 m
 
-Lidar sensor resolution : 1080 points over 270 deg visible (1440 points over 360 deg) @40Hz
+Lidar sensor resolution : 1080 points over 270 deg visible (1440 points over 360 deg) @ 40Hz
 
 ground covered distance during one revolution of scanner:
 \begin{equation}
@@ -200,7 +200,7 @@ Paparazzi is an autopilot system based on a C-code mainloop program running on a
 
 Paparazzi supports fixed-wing and rotating-wing aircraft. There is much recent use on quadrotor platforms, especially the Asctec airframe \cite{asctec}, but helicopter use has so far been very limited. Users of the fixed-wing configuration typically use small foam airframes such as the ones manufactured by RC manufacturer Mutliplex \cite{multiplex}, brushless electric motors, and the wingspans remain below 1.5m. In a few cases, the airframes are much larger, or much smaller, or more complex. These might incorporate fiberglass or carbon airframes for extended runtime \cite{murat} or range \cite{corsica}, or a gas turbine to achieve higher velocities, or larger wing areas and increased payload capacity. Essentially, the PID algorithms implemented in paparazzi are such that just about any standard craft can be controlled if the gains are adjusted properly.
 
-In the most basic and most widely used fixed-wing configuration, the autopilot uses GPS and IR sensors for attitude and navigational control \cite{paparazzi_paper}. Due to some of the drawbacks of these sensors, support for replacement or complimentary sensors exists and is continuously explored. This includes the use of static and dynamic pressure sensing (to allow the aircraft to respect air-speed or altitude bounds or setpoints, for example), the use of inertial measurement units (to eliminate the need for a minimum ground/sky IR contrast, for example), and the use of a magnetometer to obtain a measure of the aircraft's heading. To maintain an accurate state estimate with small craft capable of high roll rates, the bandwidth-limited IR sensors are complemented with a roll gyro. This is typically a low-cost MEMS sensor, of the likes from Analog Devices, and interfaced via the autopilot's extra digital interfaces or sampled by an ADC channel.
+In the most basic and most widely used fixed-wing configuration, the autopilot uses GPS and IR sensors for attitude and navigational control \cite{paparazzi_paper}. Due to some of the drawbacks of these sensors, support for replacement or complimentary sensors exists and is continuously explored. This includes the use of static and dynamic pressure sensing (to allow the aircraft to respect air-speed or altitude bounds or set-points, for example), the use of inertial measurement units (to eliminate the need for a minimum ground/sky IR contrast, for example), and the use of a magnetometer to obtain a measure of the aircraft's heading. To maintain an accurate state estimate with small craft capable of high roll rates, the bandwidth-limited IR sensors are complemented with a roll gyro. This is typically a low-cost MEMS sensor, of the likes from Analog Devices, and interfaced via the autopilot's extra digital interfaces or sampled by an ADC channel.
 
 \subsection{Hardware}
 
@@ -257,7 +257,7 @@ The next step is to represent the laser scans in a 3D environment, creating a Di
 
 \subsection{Virtual Terrain Generation}
 
-Using the PERL language, I created software that could create sensor logs using a virtual environment. The environment includes a bounded surface that defines the terrain togography and camera orientation. The model can be defined as piece-wise functions or by a greyscale bitmap. An example terrain is shown in Figure \ref{fig:mkvirt}. Lighter colored pixels have higher elevation than darker ones.
+Using the PERL language, I created software that could create sensor logs using a virtual environment. The environment includes a bounded surface that defines the terrain topography and camera orientation. The model can be defined as piece-wise functions or by a greyscale bitmap. An example terrain is shown in Figure \ref{fig:mkvirt}. Lighter colored pixels have higher elevation than darker ones.
 
 \begin{figure}[ht]
  \centering
@@ -267,7 +267,7 @@ Using the PERL language, I created software that could create sensor logs using 
  \label{fig:mkvirt}
 \end{figure}
 
-The virtual terrain surface is ``scanned'' along a line by using a raycasting method. Essentially, itterating through the scan angles one step of resolution at a time, the distance between the ``camera`` and the surface is calculated. The calculation is performed by propagating the ray until intersection is detected, and uses some trigonometry to arrive at a final distance (See Figure x).
+The virtual terrain surface is ``scanned'' along a line by using a raycasting method. Essentially, iterating through the scan angles one step of resolution at a time, the distance between the ``camera`` and the surface is calculated. The calculation is performed by propagating the ray until intersection is detected, and uses some trigonometry to arrive at a final distance (See Figure x).
 
 Insert calculation figure here.
 
@@ -314,7 +314,7 @@ The major aircraft components are listed below:
  \item Attitude Sensors : Infrared (6 orthogonal pixels paparazzi analog design)
 \end{itemize}
 
-Power for the RC Servos is supplied by an stand-alone BEC (Battery Elimination Circuit) instead of using the power provided by the autopilot board. This is done to elminate the possibility of power supply rail fluctuations due to the intermittent high current loads generated by the servos. The fluctuations can lead to the autopilot's processor rebooting in flight which can have dire consequences.
+Power for the RC Servos is supplied by an stand-alone BEC (Battery Elimination Circuit) instead of using the power provided by the autopilot board. This is done to eliminate the possibility of power supply rail fluctuations due to the intermittent high current loads generated by the servos. The fluctuations can lead to the autopilot's processor rebooting in flight which can have dire consequences.
 
 Insert close up of autopilot board in airframe.
 
@@ -322,9 +322,7 @@ Insert close up of IR sensors.
 
 \subsection{Airframe Parameters}
 
-The airframe is characterized by a number of traits that must be provided to the autopilot. These characteristics such as minimum and maximum speed, control loop gains, servo ordering and positions, etc, are listed in an xml configuration file in the Appendix (\ref{appendix_a}). Much of the initial flight testing is aimed at finding adequate gains to achieve tight control and navigation while maintaining stability in a variety of outdoor conditions.
-
-Insert Mentor aiframe xml file in Appendix.
+The airframe is characterized by a number of traits that must be provided to the autopilot. These characteristics such as minimum and maximum speed, control loop gains, servo ordering and positions, etc, are listed in an xml configuration file in the Appendix (\ref{appendix}). Much of the initial flight testing is aimed at finding adequate gains to achieve tight control and navigation while maintaining stability in a variety of outdoor conditions.
 
 \section{Payload}
 
@@ -342,7 +340,9 @@ The payload pod is built using typical model construction techniques. As seen in
 
 There is a shared ground and two signal connections between the autopilot and the payload.
 
-Since the payload is powered by it's own independant battery, a connection to the autopilot is necessary to allow for monitoring the voltage level. To this end, a voltage divider in the payload provides an output voltage compatible with the autopilot's ADC, and it is connected to a spare input channel on the autopilot board. The voltage level is sent to the ground station as an ADC\_GENERIC message and monitored directly by the ground control user by means of a paparazzi GCS papget (see figure ?). The papget automatically does the conversion from raw ADC value to voltage reading.
+Since the payload is powered by it's own independent battery, a connection to the autopilot is necessary to allow for monitoring the voltage level. To this end, a voltage divider in the payload provides an output voltage compatible with the autopilot's ADC, and it is connected to a spare input channel on the autopilot board. The voltage level is sent to the ground station as an ADC\_GENERIC message and monitored directly by the ground control user by means of a paparazzi GCS papget (see figure ?). The papget automatically does the conversion from raw ADC value to voltage reading.
+
+insert papget picture here
 
 The second connections between the autopilot and the payload is that the autopilot's telemetry transmit output so that all raw traffic can be logged by the payload. The data is already logged on the paparazzi ground station, but this connection allows the payload to identify where in the cartography flight plan the aircraft currently is, which is useful for knowing when and how to capture and log most efficiently.
 
@@ -372,7 +372,7 @@ The weight of the individual components are listed in Figure \ref{fig:weight1} a
 
 \section{Cartography Flight Plan}
 
-To request the UAV to fly in parallel tracks above a region of interest, we created a custom flight plan and merged it into the paparazzi source code base. The function allows a region of interest to be defined either before or in flight by the GCS operator by defining three waypoints. These waypoints define a rectangle and the autopilot calculates two sets of parrallel tracks, each set perpendicular to the other. The aircraft then flies along these tracks as best as possible given wind conditions and other challenges. Figure \ref{fig:gridcarto} shows the cartography function in action. In the figure, the aircraft can be seen near the center of the image traversing the current ground track highlighted in green. The aircraft track in blue shows the UAVs trajectory since the start of the pattern. The region of interest is defined by the waypoints named S1, S2, S3, and S4, and the tracks within the region are all straight lines.
+To request the UAV to fly in parallel tracks above a region of interest, we created a custom flight plan and merged it into the paparazzi source code base. The function allows a region of interest to be defined either before or in flight by the GCS operator by defining three waypoints. These waypoints define a rectangle and the autopilot calculates two sets of parallel tracks, each set perpendicular to the other. The aircraft then flies along these tracks as best as possible given wind conditions and other challenges. Figure \ref{fig:gridcarto} shows the cartography function in action. In the figure, the aircraft can be seen near the center of the image traversing the current ground track highlighted in green. The aircraft track in blue shows the UAVs trajectory since the start of the pattern. The region of interest is defined by the waypoints named S1, S2, S3, and S4, and the tracks within the region are all straight lines.
 
 \begin{figure}[ht]
  \centering
@@ -450,7 +450,7 @@ After some time working with the device driver library it was discovered to be a
 
 \section{Time Synchronization of Sensors}
  
-Currently there is loose time synchronization based on timestamps added to the scan and INS datastreams at the application level. Tighter synchronization is planned in the future by time stamping at a lower level (i.e. in the device drivers) and by hardware sync between the scanner and the camera. The pulse output generated by the scanner at the start of each revolution could be used to trigger the exposure of a camera frame using it's exposure input. This input will be available on the custom camera design currently in development at the LAAS.
+Currently there is loose time synchronization based on timestamps added to the scan and INS data streams at the application level. Tighter synchronization is planned in the future by time stamping at a lower level (i.e. in the device drivers) and by hardware sync between the scanner and the camera. The pulse output generated by the scanner at the start of each revolution could be used to trigger the exposure of a camera frame using it's exposure input. This input will be available on the custom camera design currently in development at the LAAS.
 
 \section{Other Challenges}
 
@@ -467,15 +467,15 @@ Currently there is loose time synchronization based on timestamps added to the s
 
 \chapter{Conclusion and Future Direction}
 
-This project showed that it is possible to fly the requested sensors on an autonomous aircraft. The Lidar was capable of scanning in daylight conditions and this data could be recorded along with relatively acurrate attitude and position estimates.
+This project showed that it is possible to fly the requested sensors on an autonomous aircraft. The Lidar was capable of scanning in daylight conditions and this data could be recorded along with relatively accurate attitude and position estimates.
 
 Unfortunately, the limited range of the sensors and autonomy of the aircraft render the UAV useful for only a few potential scenarios. The environment to be scanned must not have elevations that vary more than a few meters and obstacles must also be only a few meters in size. This lends itself well in looking for ditches and roads in a typical desert or agricultural landscapes, but not at all for wooded or urban environments.
 
-Another drawback with the project aircraft was that velocities in the 15 to 20 m/s range and a maximum lidar scan rate of 40 Hz results in large unmapped areas. Future investigations could focus on fusing camera data with the lidar scan data to potentialy generate traversability estimates. For example, a downed tree trunk might appear as a round or oval feature in a couple of laser scan lines, and the camera data might show this is a continous obstacle and define its extents.
+Another drawback with the project aircraft was that velocities in the 15 to 20 m/s range and a maximum lidar scan rate of 40 Hz results in large unmapped areas. Future investigations could focus on fusing camera data with the lidar scan data to potentially generate traversability estimates. For example, a downed tree trunk might appear as a round or oval feature in a couple of laser scan lines, and the camera data might show this is a continuous obstacle and define its extents.
 
 By using the laser data to regulate the aircraft's altitude, it would be possible to follow gently changing terrain elevations. Another possibility worth investigation is the deflection of part or parts of the hokuyo's 270 degree scanning range towards the front of the aircraft. These scan portions could be used to detect obstacles and instruct the autopilot to fly over or around them, although the limited lidar range and high aircraft velocities would seriously limit this capability.
 
-By using a different lidar scanner or improving the current driver performance, it would also be interesting to be able to receive intesity and multi-echo data. This data is useful for constructing terrain models in the presence of trees with leaves, for example.
+By using a different lidar scanner or improving the current driver performance, it would also be interesting to be able to receive intensity and multi-echo data. This data is useful for constructing terrain models in the presence of trees with leaves, for example.
 
 Finally, due to the effective 10m lidar range, to stay safely above the terrain and achieve higher scan density, moving to either a slow flying airplane (5-7 m/s) or a quadrotor is required. Designs for these types of craft with payload capacity in the 700 gram range could be constructed at minimal cost.
 
